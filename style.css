@@ -328,7 +328,17 @@ h1 {
   border: 1px solid rgba(124,92,252,0.15);
 }
 
-.opt-text { font-size: 15px; line-height: 1.65; padding-top: 3px; color: var(--text2); }
+.opt-text { font-size: 15px; line-height: 1.65; padding-top: 3px; color: var(--text2); flex: 1; min-width: 0; }
+
+/* Contenedor derecho de badges y botones — nunca se enciman */
+.opt-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: 12px;
+  flex-wrap: nowrap;
+}
 
 /* My exam answer (blue) */
 .option.my-answer {
@@ -339,15 +349,14 @@ h1 {
 .option.my-answer .opt-text { color: #38bdf8; }
 
 .my-answer-badge {
-  position: absolute;
-  right: 12px; top: 50%;
-  transform: translateY(-50%);
   background: #38bdf8;
   color: #fff;
   font-size: 11px;
   font-weight: 700;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 100px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Auditor buttons on options */
@@ -379,15 +388,14 @@ h1 {
 .option.correct .opt-text { color: var(--green); }
 
 .correct-badge {
-  position: absolute;
-  right: 12px; top: 50%;
-  transform: translateY(-50%);
   background: var(--green);
   color: #000;
   font-size: 11px;
   font-weight: 700;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 100px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Practice mode */
@@ -653,7 +661,8 @@ h1 {
 .q-modal {
   max-height: 90vh;
   overflow-y: auto;
-  max-width: 520px;
+  max-width: 680px;
+  width: 95vw;
 }
 .q-modal h3 { margin-bottom: 20px; }
 

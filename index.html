@@ -60,7 +60,7 @@
   </div>
 
   <!-- Modal editar / crear pregunta -->
-  <div class="modal-overlay" id="qModalOverlay" onclick="closeQModal()">
+  <div class="modal-overlay" id="qModalOverlay">
     <div class="modal q-modal" onclick="event.stopPropagation()">
       <h3 id="qModalTitle">Editar pregunta</h3>
 
@@ -82,6 +82,7 @@
 
       <label class="form-label">Respuesta correcta</label>
       <div class="answer-radio">
+        <label class="radio-opt"><input type="radio" name="qAnswer" value=""> Ninguna</label>
         <label class="radio-opt"><input type="radio" name="qAnswer" value="A"> A</label>
         <label class="radio-opt"><input type="radio" name="qAnswer" value="B"> B</label>
         <label class="radio-opt"><input type="radio" name="qAnswer" value="C"> C</label>
@@ -285,8 +286,8 @@ async function saveQuestion() {
   const answer   = document.querySelector('input[name="qAnswer"]:checked')?.value;
   const errEl    = document.getElementById('qModalError');
 
-  if (!section || !question || !optA || !optB || !optC || !answer) {
-    errEl.textContent = 'Completa todos los campos.';
+  if (!section || !question || !optA || !optB || !optC) {
+    errEl.textContent = 'Completa sección, pregunta y las tres opciones.';
     return;
   }
 
@@ -560,23 +561,31 @@ function render() {
       if (mode === 'study' && isMyAnswer)  cls += ' my-answer';
       if (auditorMode && mode === 'study') cls += ' auditor-option';
       if (mode === 'practice' && wasAnswered) {
-        if (wasSelected && isCorrect)  cls += ' selected-correct';
+        if (wasSelected && isCorrect)       cls += ' selected-correct';
         else if (wasSelected && !isCorrect) cls += ' selected-wrong';
-        else if (isCorrect) cls += ' correct';
+        else if (isCorrect)                 cls += ' correct';
       }
 
-      const auditorBtns = auditorMode && mode === 'study' ? `
-        ${!isCorrect ? `<button class="set-correct-btn" onclick="event.stopPropagation(); setCorrectAnswer(${q.id}, '${key}')">✓ Correcta</button>` : ''}
-        <button class="set-my-btn ${q.my_answer === key ? 'active' : ''}" onclick="event.stopPropagation(); setMyAnswer(${q.id}, '${key}', event)">📌 Mi resp.</button>
-      ` : '';
+      let rightHtml = '';
+      if (auditorMode && mode === 'study') {
+        rightHtml = `<div class="opt-actions">
+          ${isCorrect
+            ? `<span class="correct-badge">✓ Correcta</span>`
+            : `<button class="set-correct-btn" onclick="event.stopPropagation(); setCorrectAnswer(${q.id}, '${key}')">✓ Correcta</button>`}
+          <button class="set-my-btn ${q.my_answer === key ? 'active' : ''}" onclick="event.stopPropagation(); setMyAnswer(${q.id}, '${key}', event)">📌 Mi resp.</button>
+        </div>`;
+      } else if (mode === 'study') {
+        const badges = [];
+        if (isCorrect)  badges.push('<span class="correct-badge">✓ Correcta</span>');
+        if (isMyAnswer) badges.push('<span class="my-answer-badge">📌 Mi resp.</span>');
+        if (badges.length) rightHtml = `<div class="opt-actions">${badges.join('')}</div>`;
+      }
 
       optHtml += `
         <div class="${cls}" onclick="selectOption(${globalIdx}, '${key}', this)">
           <div class="opt-letter">${key}</div>
           <div class="opt-text">${q.options[key]}</div>
-          ${mode === 'study' && isCorrect  ? '<div class="correct-badge">✓ Correcta</div>' : ''}
-          ${mode === 'study' && isMyAnswer ? '<div class="my-answer-badge">📌 Mi resp.</div>' : ''}
-          ${auditorBtns}
+          ${rightHtml}
         </div>`;
     });
 
