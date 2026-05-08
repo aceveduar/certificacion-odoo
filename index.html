@@ -616,20 +616,17 @@ function render() {
       if (auditorMode && mode === 'study') {
         rightHtml = `<div class="opt-actions">
           ${isCorrect
-            ? `<span class="correct-badge">✓ Correcta</span>${pruebaLabel}`
+            ? `<span class="correct-badge">✓ Correcta</span>`
             : `<button class="set-correct-btn" onclick="event.stopPropagation(); setCorrectAnswer(${q.id}, '${key}')">✓ Correcta</button>`}
           <button class="set-my-btn ${q.my_answer === key ? 'active' : ''}" onclick="event.stopPropagation(); setMyAnswer(${q.id}, '${key}', event)">📌 Mi resp.</button>
-          ${q.my_answer === key && !isCorrect && pruebaLabel ? pruebaLabel : ''}
         </div>`;
       } else if (mode === 'study') {
         const badges = [];
         if (isCorrect) {
           badges.push('<span class="correct-badge">✓ Correcta</span>');
-          if (pruebaLabel) badges.push(pruebaLabel);
         }
         if (isMyAnswer) {
           badges.push('<span class="my-answer-badge">📌 Mi resp.</span>');
-          if (pruebaLabel) badges.push(pruebaLabel);
         }
         if (badges.length) rightHtml = `<div class="opt-actions">${badges.join('')}</div>`;
       }
