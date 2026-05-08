@@ -203,8 +203,9 @@ let questions = [];
 let mode = 'study';
 let activeSection = 'all';
 let searchTerm = '';
-let answered = {};
-let revealed = {};
+let answered    = {};
+let revealed    = {};
+let expandedIds = new Set();
 let auditorMode = false;
 let flagFilter   = null;
 let pruebaFilter = null;
@@ -588,6 +589,7 @@ function render() {
     card.className = 'q-card'
       + (mode === 'practice' ? ' practice-mode' : '')
       + (qFlag ? ` flag-${qFlag}` : '');
+    card.dataset.qid = q.id;
 
     const optKeys = Object.keys(q.options);
     let optHtml = '';
@@ -665,14 +667,21 @@ function render() {
         <div class="options-list">${optHtml}</div>
       </div>`;
 
+    if (expandedIds.has(q.id)) card.classList.add('expanded');
     list.appendChild(card);
   });
 }
 
 function toggleCard(card) {
   const wasExpanded = card.classList.contains('expanded');
-  document.querySelectorAll('.q-card.expanded').forEach(c => c.classList.remove('expanded'));
-  if (!wasExpanded) card.classList.add('expanded');
+  document.querySelectorAll('.q-card.expanded').forEach(c => {
+    expandedIds.delete(+c.dataset.qid);
+    c.classList.remove('expanded');
+  });
+  if (!wasExpanded) {
+    card.classList.add('expanded');
+    expandedIds.add(+card.dataset.qid);
+  }
 }
 
 function selectOption(idx, key, el) {
