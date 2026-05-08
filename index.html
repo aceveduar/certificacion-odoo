@@ -130,7 +130,8 @@
   <div class="quick-filters" id="quickFilters">
     <button class="qf-btn active" id="qfAll"      onclick="setFlagFilter(null)">Todas <span id="qfAllCount"></span></button>
     <button class="qf-btn segura"  id="qfSegura"  onclick="setFlagFilter('segura')">✅ Seguras <span id="qfSeguraCount">0</span></button>
-    <button class="qf-btn revisar" id="qfRevisar" onclick="setFlagFilter('revisar')">🔍 A revisar <span id="qfRevisarCount">0</span></button>
+    <button class="qf-btn revisar"   id="qfRevisar"   onclick="setFlagFilter('revisar')">🔍 A revisar <span id="qfRevisarCount">0</span></button>
+    <button class="qf-btn ilegible" id="qfIlegible" onclick="setFlagFilter('ilegible')">⚠️ Ilegibles <span id="qfIlegibleCount">0</span></button>
   </div>
 
   <!-- Panel de resultados del examen -->
@@ -254,7 +255,7 @@ async function setFlag(qId, status, e) {
 function setFlagFilter(val) {
   flagFilter = val;
   document.querySelectorAll('.qf-btn').forEach(b => b.classList.remove('active'));
-  const map = { null: 'qfAll', segura: 'qfSegura', revisar: 'qfRevisar' };
+  const map = { null: 'qfAll', segura: 'qfSegura', revisar: 'qfRevisar', ilegible: 'qfIlegible' };
   document.getElementById(map[val] ?? 'qfAll').classList.add('active');
   render();
 }
@@ -569,8 +570,9 @@ function render() {
   const nSegura  = questions.filter(q => q.status === 'segura').length;
   const nRevisar = questions.filter(q => q.status === 'revisar').length;
   document.getElementById('qfAllCount').textContent     = questions.length ? `(${questions.length})` : '';
-  document.getElementById('qfSeguraCount').textContent  = nSegura;
-  document.getElementById('qfRevisarCount').textContent = nRevisar;
+  document.getElementById('qfSeguraCount').textContent   = nSegura;
+  document.getElementById('qfRevisarCount').textContent  = nRevisar;
+  document.getElementById('qfIlegibleCount').textContent = questions.filter(q => q.status === 'ilegible').length;
 
   document.getElementById('pfP1Count').textContent  = questions.filter(q => q.prueba === 'prueba1').length;
   document.getElementById('pfP2Count').textContent  = questions.filter(q => q.prueba === 'prueba2').length;
@@ -652,6 +654,7 @@ function render() {
         <div class="flag-btns">
           <button class="flag-btn ${qFlag === 'segura' ? 'active' : ''}" title="Segura" onclick="setFlag(${q.id}, 'segura', event)">✅</button>
           <button class="flag-btn ${qFlag === 'revisar' ? 'active' : ''}" title="A revisar" onclick="setFlag(${q.id}, 'revisar', event)">🔍</button>
+          <button class="flag-btn ilegible-btn ${qFlag === 'ilegible' ? 'active' : ''}" title="Ilegible" onclick="setFlag(${q.id}, 'ilegible', event)">⚠️</button>
           ${auditorMode ? `
             <button class="flag-btn prueba-btn ${q.prueba === 'prueba1' ? 'active p1' : ''}" title="Prueba 1" onclick="event.stopPropagation(); setPrueba(${q.id}, 'prueba1', event)">P1</button>
             <button class="flag-btn prueba-btn ${q.prueba === 'prueba2' ? 'active p2' : ''}" title="Prueba 2" onclick="event.stopPropagation(); setPrueba(${q.id}, 'prueba2', event)">P2</button>

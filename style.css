@@ -652,7 +652,10 @@ h1 {
 .qf-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 .qf-btn.active span { background: rgba(255,255,255,0.2); }
 .qf-btn.segura.active { background: rgba(34,211,160,0.2); border-color: var(--green); color: var(--green); }
-.qf-btn.revisar.active { background: rgba(251,191,36,0.15); border-color: var(--yellow); color: var(--yellow); }
+.qf-btn.revisar.active  { background: rgba(251,191,36,0.15); border-color: var(--yellow); color: var(--yellow); }
+.qf-btn.ilegible.active { background: rgba(248,113,113,0.15); border-color: var(--red); color: var(--red); }
+
+.ilegible-btn.active { opacity: 1 !important; }
 
 /* FLAG BUTTONS ON CARD */
 .flag-btns {
@@ -681,8 +684,9 @@ h1 {
 .flag-btn.active { opacity: 1; background: rgba(255,255,255,0.06); border-color: var(--border); }
 
 /* CARD FLAG INDICATORS */
-.q-card.flag-segura  { border-left: 3px solid var(--green); }
-.q-card.flag-revisar { border-left: 3px solid var(--yellow); }
+.q-card.flag-segura   { border-left: 3px solid var(--green); }
+.q-card.flag-revisar  { border-left: 3px solid var(--yellow); }
+.q-card.flag-ilegible { border-left: 3px solid var(--red); }
 
 /* TOAST */
 .toast {
