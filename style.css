@@ -408,6 +408,167 @@ h1 {
 .score-big.bad { color: var(--red); }
 .score-big.ok { color: var(--yellow); }
 
+/* QUICK FILTERS */
+.quick-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.qf-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.qf-btn span {
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.08);
+  border-radius: 100px;
+  padding: 1px 7px;
+}
+.qf-btn:hover { border-color: var(--accent); color: var(--text); }
+.qf-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.qf-btn.active span { background: rgba(255,255,255,0.2); }
+.qf-btn.segura.active { background: rgba(34,211,160,0.2); border-color: var(--green); color: var(--green); }
+.qf-btn.revisar.active { background: rgba(251,191,36,0.15); border-color: var(--yellow); color: var(--yellow); }
+
+/* FLAG BUTTONS ON CARD */
+.flag-btns {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
+.flag-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.3;
+  transition: all 0.15s;
+  padding: 0;
+}
+.flag-btn:hover { opacity: 1; background: rgba(255,255,255,0.06); border-color: var(--border); }
+.flag-btn.active { opacity: 1; background: rgba(255,255,255,0.06); border-color: var(--border); }
+
+/* CARD FLAG INDICATORS */
+.q-card.flag-segura  { border-left: 3px solid var(--green); }
+.q-card.flag-revisar { border-left: 3px solid var(--yellow); }
+
+/* FAB nueva pregunta */
+.fab {
+  display: none;
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 28px;
+  line-height: 1;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 24px rgba(124,92,252,0.5);
+  z-index: 50;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.fab.visible { display: flex; align-items: center; justify-content: center; }
+.fab:hover { transform: scale(1.08); box-shadow: 0 6px 32px rgba(124,92,252,0.7); }
+
+/* QUESTION MODAL FORM */
+.q-modal {
+  max-height: 90vh;
+  overflow-y: auto;
+  max-width: 520px;
+}
+.q-modal h3 { margin-bottom: 20px; }
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  margin-top: 14px;
+}
+.form-label:first-of-type { margin-top: 0; }
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+  transition: border-color 0.2s;
+  resize: vertical;
+}
+.form-input:focus,
+.form-textarea:focus { border-color: var(--accent); }
+
+.answer-radio {
+  display: flex;
+  gap: 12px;
+}
+.radio-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.15s;
+  flex: 1;
+  justify-content: center;
+}
+.radio-opt input { display: none; }
+.radio-opt:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(124,92,252,0.15);
+  color: var(--accent2);
+}
+
+.modal-btn.delete {
+  background: rgba(248,113,113,0.15);
+  border: 1px solid rgba(248,113,113,0.3);
+  color: var(--red);
+  margin-right: auto;
+}
+.modal-btn.delete:hover { background: rgba(248,113,113,0.25); }
+
+.edit-btn { opacity: 0.4; }
+.edit-btn:hover { opacity: 1 !important; }
+
 /* AUDITOR BUTTON */
 .auditor-btn {
   padding: 10px 18px;

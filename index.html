@@ -58,6 +58,43 @@
     <button class="auditor-btn" id="auditorBtn" onclick="toggleAuditor()">🔑 Auditor</button>
   </div>
 
+  <!-- Modal editar / crear pregunta -->
+  <div class="modal-overlay" id="qModalOverlay" onclick="closeQModal()">
+    <div class="modal q-modal" onclick="event.stopPropagation()">
+      <h3 id="qModalTitle">Editar pregunta</h3>
+
+      <label class="form-label">Sección</label>
+      <input list="sectionList" id="qSection" class="form-input" placeholder="Ej. Ventas">
+      <datalist id="sectionList"></datalist>
+
+      <label class="form-label">Pregunta</label>
+      <textarea id="qQuestion" class="form-textarea" rows="3" placeholder="Escribe la pregunta..."></textarea>
+
+      <label class="form-label">Opción A</label>
+      <textarea id="qOptA" class="form-textarea" rows="2" placeholder="Opción A..."></textarea>
+
+      <label class="form-label">Opción B</label>
+      <textarea id="qOptB" class="form-textarea" rows="2" placeholder="Opción B..."></textarea>
+
+      <label class="form-label">Opción C</label>
+      <textarea id="qOptC" class="form-textarea" rows="2" placeholder="Opción C..."></textarea>
+
+      <label class="form-label">Respuesta correcta</label>
+      <div class="answer-radio">
+        <label class="radio-opt"><input type="radio" name="qAnswer" value="A"> A</label>
+        <label class="radio-opt"><input type="radio" name="qAnswer" value="B"> B</label>
+        <label class="radio-opt"><input type="radio" name="qAnswer" value="C"> C</label>
+      </div>
+
+      <div class="modal-actions" style="margin-top:20px">
+        <button class="modal-btn delete" id="qDeleteBtn" onclick="deleteQuestion()">🗑 Eliminar</button>
+        <button class="modal-btn cancel" onclick="closeQModal()">Cancelar</button>
+        <button class="modal-btn confirm" onclick="saveQuestion()">Guardar</button>
+      </div>
+      <p class="modal-error" id="qModalError"></p>
+    </div>
+  </div>
+
   <!-- Modal auditor -->
   <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
     <div class="modal" onclick="event.stopPropagation()">
@@ -72,10 +109,18 @@
     </div>
   </div>
 
+  <div class="quick-filters" id="quickFilters">
+    <button class="qf-btn active" id="qfAll"      onclick="setFlagFilter(null)">Todas <span id="qfAllCount"></span></button>
+    <button class="qf-btn segura"  id="qfSegura"  onclick="setFlagFilter('segura')">✅ Seguras <span id="qfSeguraCount">0</span></button>
+    <button class="qf-btn revisar" id="qfRevisar" onclick="setFlagFilter('revisar')">🔍 A revisar <span id="qfRevisarCount">0</span></button>
+  </div>
+
   <div class="section-tabs" id="sectionTabs"></div>
   <div class="result-count" id="resultCount"></div>
   <div class="questions-list" id="questionsList"></div>
 </div>
+
+<button class="fab" id="fabNew" onclick="openQuestionModal()" title="Nueva pregunta">＋</button>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -93,11 +138,34 @@ let searchTerm = '';
 let answered = {};
 let revealed = {};
 let auditorMode = false;
+let flagFilter = null;
+let flags = JSON.parse(localStorage.getItem('odoo_flags') || '{}');
+
+function saveFlags() {
+  localStorage.setItem('odoo_flags', JSON.stringify(flags));
+}
+
+function setFlag(qId, status, e) {
+  e.stopPropagation();
+  const key = String(qId);
+  flags[key] = flags[key] === status ? null : status;
+  saveFlags();
+  render();
+}
+
+function setFlagFilter(val) {
+  flagFilter = val;
+  document.querySelectorAll('.qf-btn').forEach(b => b.classList.remove('active'));
+  const map = { null: 'qfAll', segura: 'qfSegura', revisar: 'qfRevisar' };
+  document.getElementById(map[val] ?? 'qfAll').classList.add('active');
+  render();
+}
 
 function toggleAuditor() {
   if (auditorMode) {
     auditorMode = false;
     document.getElementById('auditorBtn').classList.remove('active');
+    document.getElementById('fabNew').classList.remove('visible');
     render();
     return;
   }
@@ -116,12 +184,84 @@ function checkPass() {
   if (val === AUDITOR_PASS) {
     auditorMode = true;
     document.getElementById('auditorBtn').classList.add('active');
+    document.getElementById('fabNew').classList.add('visible');
     closeModal();
     if (mode !== 'study') setMode('study');
-    else render();
+    setFlagFilter('revisar');
   } else {
     document.getElementById('modalError').textContent = 'Contraseña incorrecta.';
   }
+}
+
+// ─── QUESTION EDITOR ──────────────────────────────────────────────────────────
+
+let currentEditId = null;
+
+function openQuestionModal(q = null) {
+  currentEditId = q ? q.id : null;
+  document.getElementById('qModalTitle').textContent = q ? 'Editar pregunta' : 'Nueva pregunta';
+  document.getElementById('qSection').value   = q ? q.section         : '';
+  document.getElementById('qQuestion').value  = q ? q.question        : '';
+  document.getElementById('qOptA').value       = q ? q.options.A      : '';
+  document.getElementById('qOptB').value       = q ? q.options.B      : '';
+  document.getElementById('qOptC').value       = q ? q.options.C      : '';
+  document.getElementById('qModalError').textContent = '';
+  const ans = q ? q.answer : 'A';
+  document.querySelector(`input[name="qAnswer"][value="${ans}"]`).checked = true;
+  document.getElementById('qDeleteBtn').style.display = q ? 'flex' : 'none';
+  document.getElementById('qModalOverlay').classList.add('visible');
+  setTimeout(() => document.getElementById('qSection').focus(), 100);
+}
+
+function closeQModal() {
+  document.getElementById('qModalOverlay').classList.remove('visible');
+}
+
+async function saveQuestion() {
+  const section  = document.getElementById('qSection').value.trim();
+  const question = document.getElementById('qQuestion').value.trim();
+  const optA     = document.getElementById('qOptA').value.trim();
+  const optB     = document.getElementById('qOptB').value.trim();
+  const optC     = document.getElementById('qOptC').value.trim();
+  const answer   = document.querySelector('input[name="qAnswer"]:checked')?.value;
+  const errEl    = document.getElementById('qModalError');
+
+  if (!section || !question || !optA || !optB || !optC || !answer) {
+    errEl.textContent = 'Completa todos los campos.';
+    return;
+  }
+
+  const payload = { section, question, options: { A: optA, B: optB, C: optC }, answer };
+
+  if (currentEditId) {
+    const { error } = await db.from('preguntas').update(payload).eq('id', currentEditId);
+    if (error) { errEl.textContent = 'Error: ' + error.message; return; }
+    const idx = questions.findIndex(q => q.id === currentEditId);
+    if (idx !== -1) questions[idx] = { ...questions[idx], ...payload };
+  } else {
+    const { data, error } = await db.from('preguntas').insert(payload).select().single();
+    if (error) { errEl.textContent = 'Error: ' + error.message; return; }
+    questions.push(data);
+    document.getElementById('totalCount').textContent = questions.length;
+  }
+
+  closeQModal();
+  render();
+}
+
+async function deleteQuestion() {
+  if (!currentEditId) return;
+  if (!confirm('¿Eliminar esta pregunta? Esta acción no se puede deshacer.')) return;
+
+  const { error } = await db.from('preguntas').delete().eq('id', currentEditId);
+  if (error) { document.getElementById('qModalError').textContent = 'Error: ' + error.message; return; }
+
+  questions = questions.filter(q => q.id !== currentEditId);
+  delete flags[String(currentEditId)];
+  saveFlags();
+  document.getElementById('totalCount').textContent = questions.length;
+  closeQModal();
+  render();
 }
 
 async function setCorrectAnswer(questionId, newAnswer) {
@@ -191,6 +331,13 @@ async function init() {
     render();
   });
 
+  const dl = document.getElementById('sectionList');
+  sections.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s;
+    dl.appendChild(opt);
+  });
+
   render();
 }
 
@@ -257,7 +404,8 @@ function getFiltered() {
     const searchOk = !searchTerm ||
       q.question.toLowerCase().includes(searchTerm) ||
       Object.values(q.options).some(o => o.toLowerCase().includes(searchTerm));
-    return secOk && searchOk;
+    const flagOk = !flagFilter || flags[String(q.id)] === flagFilter;
+    return secOk && searchOk && flagOk;
   });
 }
 
@@ -267,6 +415,12 @@ function render() {
   document.getElementById('resultCount').innerHTML =
     `Mostrando <span>${filtered.length}</span> de <span>${questions.length}</span> preguntas`;
 
+  const nSegura  = Object.values(flags).filter(v => v === 'segura').length;
+  const nRevisar = Object.values(flags).filter(v => v === 'revisar').length;
+  document.getElementById('qfAllCount').textContent    = questions.length ? `(${questions.length})` : '';
+  document.getElementById('qfSeguraCount').textContent  = nSegura;
+  document.getElementById('qfRevisarCount').textContent = nRevisar;
+
   if (filtered.length === 0) {
     list.innerHTML = '<div class="empty"><div class="emoji">🔍</div><p>No se encontraron preguntas.</p></div>';
     return;
@@ -275,8 +429,11 @@ function render() {
   list.innerHTML = '';
   filtered.forEach((q, fi) => {
     const globalIdx = questions.indexOf(q);
+    const qFlag = flags[String(q.id)] || null;
     const card = document.createElement('div');
-    card.className = 'q-card' + (mode === 'practice' ? ' practice-mode' : '');
+    card.className = 'q-card'
+      + (mode === 'practice' ? ' practice-mode' : '')
+      + (qFlag ? ` flag-${qFlag}` : '');
 
     const optKeys = Object.keys(q.options);
     let optHtml = '';
@@ -313,6 +470,11 @@ function render() {
         <div class="q-meta">
           <div class="q-section">${q.section}</div>
           <div class="q-text">${q.question}</div>
+        </div>
+        <div class="flag-btns">
+          <button class="flag-btn ${qFlag === 'segura' ? 'active' : ''}" title="Segura" onclick="setFlag(${q.id}, 'segura', event)">✅</button>
+          <button class="flag-btn ${qFlag === 'revisar' ? 'active' : ''}" title="A revisar" onclick="setFlag(${q.id}, 'revisar', event)">🔍</button>
+          ${auditorMode ? `<button class="flag-btn edit-btn" title="Editar pregunta" onclick="event.stopPropagation(); openQuestionModal(questions[${globalIdx}])">✏️</button>` : ''}
         </div>
         <div class="q-toggle">+</div>
       </div>
