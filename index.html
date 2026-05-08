@@ -207,6 +207,7 @@ let searchTerm = '';
 let answered    = {};
 let revealed    = {};
 let expandedIds = new Set();
+let dragSrcId   = null;
 let auditorMode = false;
 let flagFilter   = null;
 let pruebaFilter = null;
@@ -426,13 +427,63 @@ async function setCorrectAnswer(questionId, newAnswer) {
   render();
 }
 
+// ─── DRAG & DROP ──────────────────────────────────────────────────────────────
+
+function onDragStart(e, qId) {
+  dragSrcId = qId;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => e.target.closest('.q-card').classList.add('dragging'), 0);
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function onDragEnd() {
+  document.querySelectorAll('.dragging, .drag-over').forEach(el =>
+    el.classList.remove('dragging', 'drag-over'));
+  dragSrcId = null;
+}
+
+async function onDrop(e, targetQId) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragSrcId || dragSrcId === targetQId) return;
+
+  const srcIdx    = questions.findIndex(q => q.id === dragSrcId);
+  const targetIdx = questions.findIndex(q => q.id === targetQId);
+  if (srcIdx === -1 || targetIdx === -1) return;
+
+  const [moved] = questions.splice(srcIdx, 1);
+  questions.splice(targetIdx, 0, moved);
+
+  // Reasignar sort_order y guardar solo los que cambiaron
+  const updates = [];
+  questions.forEach((q, i) => {
+    const newOrder = i + 1;
+    if (q.sort_order !== newOrder) {
+      q.sort_order = newOrder;
+      updates.push(db.from('preguntas').update({ sort_order: newOrder }).eq('id', q.id));
+    }
+  });
+
+  render();
+  await Promise.all(updates);
+}
+
 async function init() {
   questionsList.innerHTML = '<div class="empty"><div class="emoji">⏳</div><p>Cargando preguntas...</p></div>';
 
   const { data, error } = await db
     .from('preguntas')
     .select('*')
-    .order('id');
+    .order('sort_order', { nullsFirst: false });
 
   if (error) {
     questionsList.innerHTML = `<div class="empty"><div class="emoji">❌</div><p>Error al cargar: ${error.message}</p></div>`;
@@ -641,8 +692,16 @@ function render() {
         </div>`;
     });
 
+    if (auditorMode) {
+      card.setAttribute('ondragover',  'onDragOver(event)');
+      card.setAttribute('ondragleave', 'onDragLeave(event)');
+      card.setAttribute('ondrop',      `onDrop(event, ${q.id})`);
+      card.setAttribute('ondragend',   'onDragEnd()');
+    }
+
     card.innerHTML = `
       <div class="q-header" onclick="toggleCard(this.parentElement)">
+        ${auditorMode ? `<div class="drag-handle" draggable="true" ondragstart="onDragStart(event, ${q.id})" onclick="event.stopPropagation()" title="Arrastrar para reordenar">⠿</div>` : ''}
         <div class="q-num">${fi + 1}</div>
         <div class="q-meta">
           <div class="q-section">

@@ -229,6 +229,32 @@ h1 {
 .tab:hover { border-color: var(--accent); color: var(--text); }
 .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
+/* DRAG & DROP */
+.drag-handle {
+  flex-shrink: 0;
+  font-size: 18px;
+  color: var(--muted);
+  cursor: grab;
+  padding: 0 4px;
+  user-select: none;
+  opacity: 0.4;
+  transition: opacity 0.15s;
+  line-height: 1;
+}
+.drag-handle:hover  { opacity: 1; color: var(--accent); }
+.drag-handle:active { cursor: grabbing; }
+
+.q-card.dragging {
+  opacity: 0.4;
+  border-style: dashed;
+}
+.q-card.drag-over {
+  border-color: var(--accent);
+  background: rgba(124,92,252,0.06);
+  transform: scale(1.01);
+  transition: transform 0.1s;
+}
+
 /* QUESTION CARD */
 .q-card {
   background: var(--surface);
