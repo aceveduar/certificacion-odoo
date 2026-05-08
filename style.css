@@ -300,6 +300,28 @@ h1 {
   margin-bottom: 6px;
 }
 
+.section-label.editable {
+  cursor: pointer;
+  border-bottom: 1px dashed currentColor;
+  transition: opacity 0.15s;
+}
+.section-label.editable:hover { opacity: 0.7; }
+
+.section-inline-input {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent2);
+  background: var(--surface2);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 1px 6px;
+  outline: none;
+  width: 120px;
+  font-family: 'DM Sans', sans-serif;
+}
+
 .q-text {
   font-size: 16px;
   color: var(--text);

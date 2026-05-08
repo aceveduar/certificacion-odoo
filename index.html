@@ -231,6 +231,43 @@ async function setMyAnswer(questionId, key, e) {
   render();
 }
 
+function editSection(qId, spanEl) {
+  const q = questions.find(q => q.id === qId);
+  if (!q) return;
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = q.section;
+  input.className = 'section-inline-input';
+  input.setAttribute('list', 'sectionList');
+
+  spanEl.replaceWith(input);
+  input.focus();
+  input.select();
+
+  async function save() {
+    const newVal = input.value.trim();
+    if (newVal && newVal !== q.section) {
+      const { error } = await db.from('preguntas').update({ section: newVal }).eq('id', qId);
+      if (!error) {
+        q.section = newVal;
+        const dl = document.getElementById('sectionList');
+        if (![...dl.options].some(o => o.value === newVal)) {
+          const opt = document.createElement('option'); opt.value = newVal;
+          dl.appendChild(opt);
+        }
+      }
+    }
+    render();
+  }
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { input.value = q.section; input.blur(); }
+  });
+}
+
 async function setPrueba(qId, prueba, e) {
   e.stopPropagation();
   const q = questions.find(q => q.id === qId);
@@ -713,7 +750,9 @@ function render() {
         <div class="q-num">${fi + 1}</div>
         <div class="q-meta">
           <div class="q-section">
-            ${q.section}
+            ${auditorMode
+              ? `<span class="section-label editable" title="Clic para editar sección" onclick="event.stopPropagation(); editSection(${q.id}, this)">${q.section}</span>`
+              : q.section}
             ${q.prueba ? `<span class="prueba-tag ${q.prueba}">${q.prueba === 'prueba1' ? 'Prueba 1' : 'Prueba 2'}</span>` : ''}
           </div>
           <div class="q-text">${q.question}</div>
@@ -721,7 +760,7 @@ function render() {
         <div class="flag-btns">
           <button class="flag-btn ${qFlag === 'segura' ? 'active' : ''}" title="Segura" onclick="setFlag(${q.id}, 'segura', event)">✅</button>
           <button class="flag-btn ${qFlag === 'revisar' ? 'active' : ''}" title="A revisar" onclick="setFlag(${q.id}, 'revisar', event)">🔍</button>
-          <button class="flag-btn ilegible-btn ${qFlag === 'ilegible' ? 'active' : ''}" title="Ilegible" onclick="setFlag(${q.id}, 'ilegible', event)">⚠️</button>
+          ${auditorMode ? `<button class="flag-btn ilegible-btn ${qFlag === 'ilegible' ? 'active' : ''}" title="Ilegible" onclick="setFlag(${q.id}, 'ilegible', event)">⚠️</button>` : ''}
           ${auditorMode ? `
             <button class="flag-btn prueba-btn ${q.prueba === 'prueba1' ? 'active p1' : ''}" title="Prueba 1" onclick="event.stopPropagation(); setPrueba(${q.id}, 'prueba1', event)">P1</button>
             <button class="flag-btn prueba-btn ${q.prueba === 'prueba2' ? 'active p2' : ''}" title="Prueba 2" onclick="event.stopPropagation(); setPrueba(${q.id}, 'prueba2', event)">P2</button>
