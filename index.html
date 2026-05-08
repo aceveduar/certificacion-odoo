@@ -219,6 +219,7 @@ function setFlagFilter(val) {
 
 function toggleAuditor() {
   if (auditorMode) {
+    if (!confirm('¿Deseas salir del modo auditor?')) return;
     auditorMode = false;
     document.getElementById('auditorBtn').classList.remove('active');
     document.getElementById('fabNew').classList.remove('visible');
