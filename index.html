@@ -760,7 +760,7 @@ function render() {
         <div class="flag-btns">
           <button class="flag-btn ${qFlag === 'segura' ? 'active' : ''}" title="Segura" onclick="setFlag(${q.id}, 'segura', event)">✅</button>
           <button class="flag-btn ${qFlag === 'revisar' ? 'active' : ''}" title="A revisar" onclick="setFlag(${q.id}, 'revisar', event)">🔍</button>
-          ${auditorMode ? `<button class="flag-btn ilegible-btn ${qFlag === 'ilegible' ? 'active' : ''}" title="Ilegible" onclick="setFlag(${q.id}, 'ilegible', event)">⚠️</button>` : ''}
+          <button class="flag-btn ilegible-btn ${qFlag === 'ilegible' ? 'active' : ''}" title="${auditorMode ? 'Ilegible' : 'Marcada como ilegible'}" ${auditorMode ? `onclick="setFlag(${q.id}, 'ilegible', event)"` : 'onclick="event.stopPropagation()" style="cursor:default"'}>⚠️</button>
           ${auditorMode ? `
             <button class="flag-btn prueba-btn ${q.prueba === 'prueba1' ? 'active p1' : ''}" title="Prueba 1" onclick="event.stopPropagation(); setPrueba(${q.id}, 'prueba1', event)">P1</button>
             <button class="flag-btn prueba-btn ${q.prueba === 'prueba2' ? 'active p2' : ''}" title="Prueba 2" onclick="event.stopPropagation(); setPrueba(${q.id}, 'prueba2', event)">P2</button>
