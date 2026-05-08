@@ -1,0 +1,2071 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Certificación Funcional Odoo 19</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a12;
+    --surface: #13131f;
+    --surface2: #1c1c2e;
+    --accent: #7c5cfc;
+    --accent2: #c084fc;
+    --green: #22d3a0;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --border: #2a2a3e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,92,252,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,92,252,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glow blob */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px; right: -200px;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(124,92,252,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px 60px;
+  }
+
+  /* HEADER */
+  header {
+    padding: 40px 0 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 36px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(124,92,252,0.15);
+    border: 1px solid rgba(124,92,252,0.3);
+    color: var(--accent2);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 100px;
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff 30%, var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 15px;
+    font-weight: 300;
+  }
+
+  /* CONTROLS */
+  .controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+    align-items: center;
+  }
+
+  .search-box {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+  }
+
+  .search-box input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px 12px 44px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-box input:focus { border-color: var(--accent); }
+  .search-box input::placeholder { color: var(--muted); }
+
+  .search-box .icon {
+    position: absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 16px;
+  }
+
+  .filter-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .filter-select:focus { border-color: var(--accent); }
+  .filter-select option { background: var(--surface2); }
+
+  /* STATS */
+  .stats {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    flex: 1;
+    min-width: 120px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 20px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent2);
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  /* SECTION TABS */
+  .section-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+
+  .tab {
+    padding: 7px 14px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .tab:hover { border-color: var(--accent); color: var(--text); }
+  .tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 500;
+  }
+
+  /* QUESTION CARDS */
+  .questions-list { display: flex; flex-direction: column; gap: 16px; }
+
+  .q-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.15s;
+    cursor: pointer;
+  }
+
+  .q-card:hover { border-color: rgba(124,92,252,0.4); transform: translateY(-1px); }
+  .q-card.expanded { border-color: var(--accent); }
+
+  .q-header {
+    padding: 20px 24px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .q-num {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    background: rgba(124,92,252,0.15);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent2);
+  }
+
+  .q-meta { flex: 1; }
+
+  .q-section {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .q-text {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .q-toggle {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted);
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+
+  .q-card.expanded .q-toggle {
+    background: var(--accent);
+    color: #fff;
+    transform: rotate(45deg);
+  }
+
+  .q-body {
+    display: none;
+    padding: 0 24px 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .q-card.expanded .q-body { display: block; }
+
+  .options-list { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+
+  .option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    font-size: 14px;
+    line-height: 1.4;
+    transition: all 0.2s;
+  }
+
+  .option.correct {
+    border-color: rgba(34,211,160,0.5);
+    background: rgba(34,211,160,0.08);
+  }
+
+  .option.correct .opt-letter {
+    background: var(--green);
+    color: #0a0a12;
+  }
+
+  .opt-letter {
+    flex-shrink: 0;
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    font-family: 'Syne', sans-serif;
+  }
+
+  .opt-text { flex: 1; color: var(--text); }
+  .option.correct .opt-text { color: var(--green); font-weight: 500; }
+
+  .correct-badge {
+    flex-shrink: 0;
+    background: var(--green);
+    color: #0a0a12;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 100px;
+    align-self: center;
+  }
+
+  /* Respuesta marcada en imagen (azul) */
+  .option.user-selected {
+    border-color: rgba(59,130,246,0.5);
+    background: rgba(59,130,246,0.08);
+  }
+  .option.user-selected .opt-letter {
+    background: #3b82f6;
+    color: #fff;
+  }
+  .option.user-selected .opt-text { color: #60a5fa; font-weight: 500; }
+  .user-selected-badge {
+    flex-shrink: 0;
+    background: #3b82f6;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 100px;
+    align-self: center;
+  }
+
+  /* Leyenda */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 18px;
+    margin-bottom: 20px;
+    font-size: 13px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  .legend-dot.green { background: var(--green); }
+  .legend-dot.blue { background: #3b82f6; }
+  .legend-label { color: var(--muted); }
+
+  /* Mode: Práctica */
+  .practice-mode .option.correct { border-color: var(--border); background: var(--surface2); }
+  .practice-mode .option.correct .opt-letter { background: rgba(255,255,255,0.08); color: var(--muted); }
+  .practice-mode .option.correct .opt-text { color: var(--text); font-weight: 400; }
+  .practice-mode .correct-badge { display: none; }
+  .practice-mode .option:hover { border-color: var(--accent); cursor: pointer; }
+  .practice-mode .option.selected-correct { border-color: rgba(34,211,160,0.5); background: rgba(34,211,160,0.08); }
+  .practice-mode .option.selected-correct .opt-letter { background: var(--green); color: #0a0a12; }
+  .practice-mode .option.selected-correct .opt-text { color: var(--green); font-weight: 500; }
+  .practice-mode .option.selected-wrong { border-color: rgba(248,113,113,0.5); background: rgba(248,113,113,0.08); }
+  .practice-mode .option.selected-wrong .opt-letter { background: var(--red); color: #fff; }
+  .practice-mode .option.selected-wrong .opt-text { color: var(--red); }
+
+  /* MODE TOGGLE */
+  .mode-toggle {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+  }
+
+  .mode-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .mode-btn.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* EMPTY STATE */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty .emoji { font-size: 48px; margin-bottom: 12px; }
+  .empty p { font-size: 15px; }
+
+  /* COUNT */
+  .result-count {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .result-count span { color: var(--accent2); font-weight: 500; }
+
+  /* PROGRESS BAR */
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 100px;
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 100px;
+    transition: width 0.3s;
+  }
+
+  /* SCORE PANEL */
+  .score-panel {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+  .score-panel.visible { display: block; }
+  .score-big {
+    font-family: 'Syne', sans-serif;
+    font-size: 56px;
+    font-weight: 800;
+  }
+  .score-big.good { color: var(--green); }
+  .score-big.bad { color: var(--red); }
+  .score-big.ok { color: var(--yellow); }
+
+  @media (max-width: 600px) {
+    .stats { gap: 8px; }
+    .stat-card { padding: 12px; }
+    .stat-num { font-size: 22px; }
+    .q-header { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="badge">📋 Examen Oficial</div>
+    <h1>Certificación Funcional<br>Odoo 19</h1>
+    <p class="subtitle">Banco de preguntas completo · Todas las secciones</p>
+  </header>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-num" id="totalCount">0</div>
+      <div class="stat-label">Preguntas</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="sectionCount">0</div>
+      <div class="stat-label">Secciones</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="answeredCount">0</div>
+      <div class="stat-label">Respondidas</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="correctCount" style="color: var(--green)">0</div>
+      <div class="stat-label">Correctas</div>
+    </div>
+  </div>
+
+  <div class="progress-bar" id="progressBar" style="display:none">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <div class="score-panel" id="scorePanel">
+    <div class="score-big" id="scoreBig">0%</div>
+    <div style="color: var(--muted); margin-top: 8px; font-size: 14px" id="scoreText"></div>
+  </div>
+
+  <div class="controls">
+    <div class="search-box">
+      <span class="icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Buscar pregunta...">
+    </div>
+    <select class="filter-select" id="sectionFilter">
+      <option value="">Todas las secciones</option>
+    </select>
+    <div class="mode-toggle">
+      <button class="mode-btn active" onclick="setMode('study')" id="btnStudy">📖 Estudio</button>
+      <button class="mode-btn" onclick="setMode('practice')" id="btnPractice">🎯 Práctica</button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-dot green"></div>
+      <span class="legend-label">Respuesta correcta</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot blue"></div>
+      <span class="legend-label">Tu respuesta en el examen</span>
+    </div>
+  </div>
+
+  <div class="section-tabs" id="sectionTabs"></div>
+
+  <div class="result-count" id="resultCount"></div>
+
+  <div class="questions-list" id="questionsList"></div>
+</div>
+
+<script>
+const questions = [
+  // ═══════════════════════════════════════════════
+  // INTRODUCCIÓN
+  // ═══════════════════════════════════════════════
+  {
+    section: "Introducción",
+    question: "En una estructura multiempresarial, ¿cómo se puede permitir que el registro de un cliente se comparta entre todas las empresas?",
+    options: {
+      A: "Esto no es posible porque cada cliente está restringido a una sola empresa.",
+      B: "Deje el campo 'Empresa' vacío en el registro de contacto (pestaña Ventas y Compras).",
+      C: "Habilita la opción 'Accesible para todos' en el contacto."
+    },
+    answer: "B"
+  },
+  {
+    section: "Introducción",
+    question: "Si estuvieras en una vista de lista, ¿cómo mostrarías 1000 registros a la vez?",
+    options: {
+      A: "Todos los registros se muestran siempre.",
+      B: "Haciendo clic en el indicador de página junto a las opciones de vista e introduciendo un número del 1 al 1000.",
+      C: "80 registros es el número máximo de resultados que se pueden mostrar en la vista de lista."
+    },
+    answer: "B"
+  },
+  {
+    section: "Introducción",
+    question: "¿Qué significa que un registro se archive en Odoo?",
+    options: {
+      A: "Los registros no pueden archivarse con fines de trazabilidad.",
+      B: "Cuando un registro se archiva en Odoo, queda oculto a la vista habitual y deja de estar activo.",
+      C: "Cuando un documento se archiva, nadie puede modificarlo jamás; queda congelado para siempre."
+    },
+    answer: "B"
+  },
+  {
+    section: "Introducción",
+    question: "¿Cuál es la diferencia entre un mensaje/discusión y una nota de registro en el chat?",
+    options: {
+      A: "Se envía un mensaje/discusión al cliente y se notifica a todos los seguidores, mientras que una nota de registro solo es visible internamente o a través de menciones (@).",
+      B: "Un mensaje o una discusión se publica públicamente en el registro, mientras que una nota de registro está destinada a actualizaciones internas o a la colaboración en equipo.",
+      C: "Un mensaje o una conversación envía notificaciones a contactos externos, mientras que una nota de registro limita la comunicación a los seguidores internos."
+    },
+    answer: "A"
+  },
+  {
+    section: "Introducción",
+    question: "¿Cómo se pueden agregar o eliminar seguidores de forma masiva de varios registros en Odoo?",
+    options: {
+      A: "En la vista de lista, seleccione los registros, haga clic en Acciones y, a continuación, elija Agregar/Eliminar seguidores.",
+      B: "En la vista de formulario, abra cada registro y gestione los seguidores individualmente en la sección de chat.",
+      C: "En Configuración > Usuarios y empresas, actualice las listas de seguidores para todos los registros relacionados."
+    },
+    answer: "A"
+  },
+  {
+    section: "Introducción",
+    question: "¿Qué ocurre con los campos de los contactos secundarios al fusionarlos con un contacto principal?",
+    options: {
+      A: "Odoo descarta toda la información de los contactos secundarios, excepto la de los registros vinculados.",
+      B: "Los campos del registro maestro se mantienen, y los campos no vacíos de los registros secundarios se incorporan.",
+      C: "Todos los campos de los contactos secundarios sobrescriben los datos del contacto principal."
+    },
+    answer: "B"
+  },
+
+  // ═══════════════════════════════════════════════
+  // VENTAS
+  // ═══════════════════════════════════════════════
+  {
+    section: "Ventas",
+    question: "¿Qué significa que la cantidad prevista de un producto sea menor que la cantidad disponible?",
+    options: {
+      A: "Ha faltado una orden de compra para reponer el producto.",
+      B: "Está previsto que lleguen los productos de reemplazo, pero se han retrasado temporalmente.",
+      C: "Se esperan más unidades del producto que las que están en stock."
+    },
+    answer: "C"
+  },
+  {
+    section: "Ventas",
+    question: "Un cliente está interesado en un producto bastante caro. El plazo de entrega del proveedor es MENOR que el plazo de entrega al cliente. Debido a su elevado precio, no se vende este producto con frecuencia. ¿Cuál es el mejor método de aprovisionamiento para gestionar este producto de forma eficaz?",
+    options: {
+      A: "Acceda a la aplicación Ajustes y active la opción 'Descuentos por volumen'. Cuando compre más de diez peldaños del artículo al nivel más alto, su solicitud de compra negociará automáticamente un precio más económico.",
+      B: "Utilice la herramienta Plan Maestro de Producción.",
+      C: "Establezca esta ruta de producto en: Reabastecer bajo pedido (MTO)."
+    },
+    answer: "C"
+  },
+  {
+    section: "Ventas",
+    question: "¿Qué significa que un producto tenga marcadas tanto la casilla de verificación 'Comprar' como la casilla de verificación 'Reabastecer bajo pedido (MTO)' en la pestaña 'Inventario' de su formulario de producto?",
+    options: {
+      A: "Cuando se activa una regla de reabastecimiento establecida para el producto, se generará una orden de fabricación en lugar de una orden de compra para comprar el producto a un proveedor para abastecer inventario.",
+      B: "Cuando se confirma un pedido de venta con este producto, un proceso automático de reabastecimiento del producto intentará comprar el producto a un proveedor si el inventario es insuficiente.",
+      C: "Cuando el inventario del producto llegue a cero, se enviará una solicitud de cotización a un proveedor para que compre y envíe las unidades del producto con su almacén."
+    },
+    answer: "B"
+  },
+  {
+    section: "Ventas",
+    question: "¿Qué significa que la casilla 'Comprar' de un producto esté marcada en la pestaña 'Inventario' de su formulario?",
+    options: {
+      A: "Cuando se activa una regla de reabastecimiento establecida en el producto, se generará del cálculo de contratos para comprar el producto a un proveedor.",
+      B: "Cuando se activa una regla de reabastecimiento establecida en el producto, se generará una orden de fabricación.",
+      C: "Cuando se confirma un pedido de venta, se generará una orden de fabricación."
+    },
+    answer: "A"
+  },
+  {
+    section: "Ventas",
+    question: "¿Qué condición debe cumplirse al utilizar una unidad de medida predeterminada y una unidad de medida de compra?",
+    options: {
+      A: "Los dos unidades de medida deben compartir la misma unidad de referencia.",
+      B: "Las dos unidades de medida no pueden compartir la misma unidad de referencia.",
+      C: "Las dos unidades de medida deben tener el mismo número de unidad."
+    },
+    answer: "A"
+  },
+  {
+    section: "Ventas",
+    question: "¿Se puede utilizar cualquier producto en un pedido de venta?",
+    options: {
+      A: "Sí, puedes usar todos los productos.",
+      B: "No, solo puedes usar los productos que tienes actualmente en stock.",
+      C: "No, solo puedes usar los productos que hayas marcado como 'Ofertable' en el formulario del producto."
+    },
+    answer: "C"
+  },
+  {
+    section: "Ventas",
+    question: "Un cliente está vinculado a la lista de precios 'Minorista'. Si crea un presupuesto para este cliente, pero cambia la lista de precios a 'Consumidor' *antes* de agregar productos al presupuesto, ¿qué precio se utilizará para las nuevas líneas del pedido de venta?",
+    options: {
+      A: "Un precio de la lista de precios del 'Minorista'.",
+      B: "Un precio de la lista de precios para el consumidor.",
+      C: "Si obtiene una advertencia y solo se aplica la lista de precios correcta."
+    },
+    answer: "B"
+  },
+  {
+    section: "Ventas",
+    question: "¿Cuál es la mejor manera de configurar el formulario del producto para un servicio en el que un consultor se desplazará al domicilio del cliente para realizar una tasación de la vivienda?",
+    options: {
+      A: "Debe configurarse con el tipo de producto 'Bienes' y la política de facturación de 'Cantidades entregadas', ya que el consultor se entrega personalmente a visitar al cliente.",
+      B: "Debe configurarse con el tipo de producto 'Servicio' y la política de facturación 'Prepago/Precio Fijo', ya que el consultor está prestando un servicio único.",
+      C: "Debe configurarse con el tipo de producto 'Combo', ya que la tasación es un servicio, pero accedel al domicilio del cliente cuenta como el bien entregado."
+    },
+    answer: "B"
+  },
+  {
+    section: "Ventas",
+    question: "Tienes un pequeño negocio de panadería. Cuentas con una tienda física donde vendes panes individuales, un menú de almuerzo con sándwich y refresco a elección del cliente, y clases para hacer pan en casa. ¿Cuál de estos productos se ajusta mejor al tipo de producto 'Servicio'?",
+    options: {
+      A: "Los paquetes de pan individuales, ya que son tarifa por el servicio que presta, como patrón permanente.",
+      B: "Las clases de elaboración de pan en casa, ya que vendas exclusivamente y tu crea productos físicos.",
+      C: "El menú del almuerzo, ya que permite que dos clientes pidan artículos solo una vez (en compra en lugar de monitorear productos frescos los recados individuales)."
+    },
+    answer: "B"
+  },
+  {
+    section: "Ventas",
+    question: "¿Qué tipo de plan de comisiones utilizaría para recompensar a los vendedores por su alto rendimiento sin un objetivo específico?",
+    options: {
+      A: "Un plan de comisiones basado en objetivo.",
+      B: "Un plan de comisiones basado en el logro.",
+      C: "Un plan de comisiones variables."
+    },
+    answer: "B"
+  },
+
+  // ═══════════════════════════════════════════════
+  // ENCUESTA
+  // ═══════════════════════════════════════════════
+  {
+    section: "Encuesta",
+    question: "En la pestaña 'Opciones' de un formulario de encuesta, ¿cuáles son las opciones de 'Mostrar progreso como'?",
+    options: {
+      A: "'Porcentaje restante' y 'Barra de progreso'.",
+      B: "'Porcentaje restante' y 'Número'.",
+      C: "'Barra de progreso' y 'Número'."
+    },
+    answer: "B"
+  },
+  {
+    section: "Encuesta",
+    question: "¿Cómo pueden los participantes en una encuesta de sesión en vivo recibir una bonificación por responder rápidamente a las preguntas?",
+    options: {
+      A: "Analiza su tiempo de respuesta en la sección de Informes y envíales una recompensa manualmente.",
+      B: "Active la opción de respuestas rápidas para obtener recompensas en la sección Sesión en vivo de la pestaña Opciones del formulario de la encuesta.",
+      C: "Habilite la opción 'Puntuación por tiempo' en la pestaña 'Preguntas' de la encuesta."
+    },
+    answer: "B"
+  },
+  {
+    section: "Encuesta",
+    question: "¿Qué componente visual aparece en una página de participación específica cuando se ha completado con éxito una encuesta?",
+    options: {
+      A: "Un cartel verde con la palabra 'Aprobado' en la esquina superior derecha.",
+      B: "Un banner azul con la palabra 'Completado' en la parte superior de la página.",
+      C: "En Odoo no existe ningún indicador que señale que una encuesta se ha completado con éxito."
+    },
+    answer: "B"
+  },
+
+  // ═══════════════════════════════════════════════
+  // CRM
+  // ═══════════════════════════════════════════════
+  {
+    section: "CRM",
+    question: "¿Cuál es la diferencia entre eliminar una oportunidad y marcarla como perdida?",
+    options: {
+      A: "Al eliminar una oportunidad, este desaparece de todas las vistas, pero permite restaurarla a través de los registros archivados de la base de datos.",
+      B: "Marcar una oportunidad como perdida simplemente la oculta del proceso sin eliminar el registro.",
+      C: "Eliminar una oportunidad y marcarla como perdida archivan el registro, pero marcarla como pérdida también activa una notificación para el equipo de ventas."
+    },
+    answer: "B"
+  },
+  {
+    section: "CRM",
+    question: "¿Con qué clientes potenciales puede trabajar un usuario con los derechos de acceso Usuario: Solo documentos propios?",
+    options: {
+      A: "Todos los clientes potenciales, si el usuario está en modo desarrollador.",
+      B: "Clientes potenciales generados el año anterior.",
+      C: "Clientes potenciales que les han sido asignados, o que aún no han sido asignados a nadie."
+    },
+    answer: "C"
+  },
+  {
+    section: "CRM",
+    question: "¿Qué información muestra el botón inteligente Oportunidades en el registro de contacto de una empresa en Odoo?",
+    options: {
+      A: "Todas las oportunidades relacionadas con la empresa y sus contactos.",
+      B: "Solo las oportunidades que se han ganado.",
+      C: "Solo oportunidades que tengan actividades programadas."
+    },
+    answer: "A"
+  },
+  {
+    section: "CRM",
+    question: "¿Cuándo se puede establecer el ingreso esperado de una oportunidad en Odoo?",
+    options: {
+      A: "No se puede configurar manualmente porque se calcula a partir del importe no gravado de los pedidos de venta vinculados.",
+      B: "Solo se puede configurar al crear la oportunidad.",
+      C: "Se puede configurar o modificar manualmente en cualquier momento."
+    },
+    answer: "C"
+  },
+  {
+    section: "CRM",
+    question: "¿Qué permite hacer el informe de Previsiones en Odoo?",
+    options: {
+      A: "Visualiza rápidamente todas tus oportunidades organizadas por fecha de cierre prevista.",
+      B: "Analizar los ingresos previstos para un período futuro, como el próximo trimestre.",
+      C: "Registra tus suposiciones sobre las tendencias del mercado y compártelas con tu equipo."
+    },
+    answer: "A"
+  },
+  {
+    section: "CRM",
+    question: "Una vez que una oportunidad se marca como ganada, ¿qué se puede hacer con ella?",
+    options: {
+      A: "Ya no puedes editar la oportunidad porque está bloqueada.",
+      B: "Todas las cotizaciones vinculadas se confirman automáticamente.",
+      C: "Aún puedes editar la oportunidad."
+    },
+    answer: "C"
+  },
+  {
+    section: "CRM",
+    question: "Si el responsable del equipo de preventa crea un nuevo campo de propiedad en una oportunidad, ¿quién puede verlo?",
+    options: {
+      A: "Solo miembros del equipo de preventa.",
+      B: "Solo gerentes de otros equipos de ventas.",
+      C: "Cualquier persona que tenga acceso a esa oportunidad."
+    },
+    answer: "C"
+  },
+  {
+    section: "CRM",
+    question: "¿Cuál de las siguientes opciones no es una forma de generar un cliente potencial desde tu sitio web en Odoo?",
+    options: {
+      A: "En el formulario de Contacto, configure la acción para que se cree una oportunidad.",
+      B: "En el formulario de Citas, configure la acción para que crea una oportunidad.",
+      C: "En el formulario de la tienda, configure la acción como 'Crear una oportunidad'."
+    },
+    answer: "A"
+  },
+  {
+    section: "CRM",
+    question: "¿Qué indica un icono de actividad naranja en una tarjeta de oportunidad en la vista Kanban?",
+    options: {
+      A: "La actividad vence pronto.",
+      B: "Esta actividad está pendiente desde hace tiempo.",
+      C: "La actividad debe entregarse hoy."
+    },
+    answer: "C"
+  },
+  {
+    section: "CRM",
+    question: "¿Cómo se puede saber si una etapa contiene una o más oportunidades descartadas?",
+    options: {
+      A: "El número de oportunidades perdidas se muestra en un círculo rojo en la parte superior del escenario.",
+      B: "La etapa se desplaza automáticamente a la parte inferior de la tubería.",
+      C: "Las oportunidades descartadas permanecen ocultas en la vista Kanban hasta que se revisan manualmente."
+    },
+    answer: "C"
+  },
+
+  // ═══════════════════════════════════════════════
+  // AI
+  // ═══════════════════════════════════════════════
+  {
+    section: "AI",
+    question: "En una solicitud de agente de IA, ¿cuál es el propósito de usar /field selector?",
+    options: {
+      A: "Para hacer referencia o actualizar campos específicos de un registro directamente en el mensaje.",
+      B: "Para crear un acceso directo que permita agregar nuevos campos personalizados a un modelo.",
+      C: "Para insertar fragmentos de texto predefinidos almacenados en la aplicación Conocimiento."
+    },
+    answer: "A"
+  },
+  {
+    section: "AI",
+    question: "En una solicitud de agente de IA, ¿qué permite hacer el selector /record?",
+    options: {
+      A: "Para adjuntar archivos desde la aplicación Documentos a una conversación con IA.",
+      B: "Para abrir una vista de lista filtrada de registros relacionados en una ventana separada.",
+      C: "Para consultar o actualizar información de un registro específico al interactuar con el agente de IA."
+    },
+    answer: "C"
+  },
+  {
+    section: "AI",
+    question: "Para utilizar las funciones de inteligencia artificial en Odoo, es necesario instalar la aplicación de IA.",
+    options: {
+      A: "Cierto: las funciones de IA solo están disponibles una vez instalada la aplicación de IA.",
+      B: "Falso: instalar la aplicación de IA permite personalizar los agentes de IA, pero muchas funciones de IA están disponibles sin ella.",
+      C: "Falso: la aplicación de IA es opcional para los usuarios que solo necesitan funciones de IA integradas, como sugerencias de texto o búsqueda."
+    },
+    answer: "B"
+  },
+  {
+    section: "AI",
+    question: "¿Cuál es la finalidad del aviso de correo electrónico con IA en las plantillas de correo electrónico de Odoo?",
+    options: {
+      A: "Decidir cuándo enviar un correo electrónico para maximizar la tasa de apertura.",
+      B: "Para ayudar a redactar o mejorar partes de un mensaje de correo electrónico basándose en el contexto de la plantilla.",
+      C: "Para detectar automáticamente las direcciones de correo electrónico de los destinatarios a partir de los registros de contactos."
+    },
+    answer: "B"
+  },
+  {
+    section: "AI",
+    question: "¿Qué hace la función 'Preguntar a la IA de búsqueda'?",
+    options: {
+      A: "Para convertir automáticamente una búsqueda en lenguaje natural en los filtros de base de datos adecuados.",
+      B: "Para generar sugerencias de IA que mejoren tus términos de búsqueda.",
+      C: "Para buscar únicamente dentro de los artículos de la base de conocimientos y los archivos subidos."
+    },
+    answer: "A"
+  },
+
+  // ═══════════════════════════════════════════════
+  // MARKETING
+  // ═══════════════════════════════════════════════
+  {
+    section: "Marketing",
+    question: "¿Se pueden utilizar los mismos contactos de la lista de correo para campañas de marketing tanto por correo electrónico como por SMS?",
+    options: {
+      A: "No, los contactos de la lista de correo son específicos del método de entrega y no son intercambiables.",
+      B: "No, ya que los contactos de las listas de correo SMS no tienen un campo de correo electrónico, y las listas de marketing por correo electrónico no tienen un campo de número de teléfono.",
+      C: "Sí, ya que los contactos de la lista de correo contienen tanto direcciones de correo electrónico como números de teléfono."
+    },
+    answer: "C"
+  },
+  {
+    section: "Marketing",
+    question: "Estás organizando un evento en un espacio con un número limitado de asientos. ¿Cómo configurarías el evento para garantizar que todos los asistentes tengan un asiento?",
+    options: {
+      A: "En el formulario del evento, marque la casilla 'Límite de inscripciones' y, a continuación, introduzca el número máximo de asistentes.",
+      B: "En el formulario del evento, introduzca la capacidad máxima del recinto en el campo Capacidad.",
+      C: "Tras seleccionar el lugar, Odoo extrae automáticamente los límites de capacidad del formulario del lugar."
+    },
+    answer: "A"
+  },
+  {
+    section: "Marketing",
+    question: "¿Qué requisitos se deben cumplir al bloquear un número de teléfono en el marketing por SMS?",
+    options: {
+      A: "Solo el número de teléfono.",
+      B: "El nombre, el número de teléfono y el país.",
+      C: "El número de teléfono y el proveedor de servicios telefónicos."
+    },
+    answer: "A"
+  },
+
+  // ═══════════════════════════════════════════════
+  // SITIO WEB
+  // ═══════════════════════════════════════════════
+  {
+    section: "Sitio web",
+    question: "Acabas de personalizar un bloque de construcción. ¿Dónde puedes reutilizarlo?",
+    options: {
+      A: "Puedes guardarlo y reutilizarlo en cualquier parte de tu sitio web.",
+      B: "Puedes guardarlo y reutilizarlo, pero solo en la página en la que fue creado.",
+      C: "Puedes guardarlo y reutilizarlo, pero solo en la página de inicio."
+    },
+    answer: "A"
+  },
+  {
+    section: "Sitio web",
+    question: "Has añadido la ventana emergente de 'Boletín informativo' a tu sitio web y quieres editarla. ¿Cómo puedes encontrarla?",
+    options: {
+      A: "Acceda al modo de edición de su sitio web y espere unos segundos a que aparezca la ventana emergente.",
+      B: "Haciendo clic en 'Ventana emergente de boletín informativo' en la sección 'Elementos invisibles' en la parte inferior del editor del sitio web.",
+      C: "Haciendo clic en Sitio web > Sitio > Propiedades."
+    },
+    answer: "B"
+  },
+  {
+    section: "Sitio web",
+    question: "¿Cómo se pueden superponer dos imágenes?",
+    options: {
+      A: "Activando el modo 'cuadrícula' en el bloque, agregando una imagen y arrastrándola sobre una segunda imagen.",
+      B: "Al hacer clic en una imagen, pulse el botón 'superponer' y añada una segunda imagen.",
+      C: "Puedes hacerlo usando solo CSS."
+    },
+    answer: "A"
+  },
+  {
+    section: "Sitio web",
+    question: "¿Puedes subir una fuente personalizada a tu sitio web?",
+    options: {
+      A: "No, solo puedes usar fuentes de Google.",
+      B: "Sí, puedes importar una fuente personalizada en cualquiera de los siguientes formatos de archivo: zip, ttf, woff.",
+      C: "Sí, puedes importar una fuente personalizada en cualquiera de los siguientes formatos de archivo: zip, ttf, woff, woff2, otf."
+    },
+    answer: "C"
+  },
+
+  // ═══════════════════════════════════════════════
+  // COMERCIO ELECTRÓNICO
+  // ═══════════════════════════════════════════════
+  {
+    section: "Comercio electrónico",
+    question: "¿Qué lista de precios se utiliza en su tienda online para los visitantes que no han iniciado sesión?",
+    options: {
+      A: "Si no se asigna ningún grupo de países, el sitio web utiliza la lista de precios 'Predeterminada' que coincide con el grupo de países de su empresa, independientemente del pedido.",
+      B: "Si no se asigna ningún grupo de países, el sitio web utiliza la primera lista de precios de la lista que está vinculada a su sitio web.",
+      C: "Siempre utiliza la lista de precios 'Predeterminada'."
+    },
+    answer: "C"
+  },
+  {
+    section: "Comercio electrónico",
+    question: "¿Qué otra opción existe para mostrar una variante de color de un producto?",
+    options: {
+      A: "En lugar de un color, se puede utilizar un vídeo, un GIF o una representación en 3D del producto.",
+      B: "Se puede visualizar una representación en 3D de la variante de color del producto.",
+      C: "En lugar de un color, se puede mostrar una imagen del producto o un GIF."
+    },
+    answer: "C"
+  },
+  {
+    section: "Comercio electrónico",
+    question: "¿Existen formas específicas de mostrar los atributos del producto sobre una tarjeta de producto en la página /shop?",
+    options: {
+      A: "No, siempre están visibles.",
+      B: "Sí, puedes elegir si mostrarlas o no, o mostrarlas solo al pasar el cursor por encima.",
+      C: "Solo puedes elegir ocultarlos o mostrarlos al desplazarte."
+    },
+    answer: "B"
+  },
+  {
+    section: "Comercio electrónico",
+    question: "¿Qué puedes añadir a un producto para destacarlo en tu catálogo y/o en la página del producto?",
+    options: {
+      A: "Una cinta.",
+      B: "Una insignia.",
+      C: "Una cinta o una insignia."
+    },
+    answer: "A"
+  },
+
+  // ═══════════════════════════════════════════════
+  // CONOCIMIENTO
+  // ═══════════════════════════════════════════════
+  {
+    section: "Conocimiento",
+    question: "¿Cómo se puede mover un artículo a la categoría de 'Favoritos'?",
+    options: {
+      A: "Con tan solo arrastrar y soltar.",
+      B: "Haciendo clic en el icono de la estrella.",
+      C: "Mediante la opción 'Trasladar a'."
+    },
+    answer: "B"
+  },
+  {
+    section: "Conocimiento",
+    question: "¿Cuál de los siguientes comandos permite ocultar y mostrar un bloque de contenido?",
+    options: {
+      A: "Índice",
+      B: "Alternar lista",
+      C: "Separador"
+    },
+    answer: "B"
+  },
+  {
+    section: "Conocimiento",
+    question: "Tras pulsar CTRL+K, ¿qué símbolo permite buscar artículos ocultos?",
+    options: {
+      A: "El signo de interrogación (?)",
+      B: "El símbolo del dólar ($)",
+      C: "El signo de exclamación (!)"
+    },
+    answer: "A"
+  },
+
+  // ═══════════════════════════════════════════════
+  // HOJAS DE HORAS TRABAJADAS
+  // ═══════════════════════════════════════════════
+  {
+    section: "Hojas de horas trabajadas",
+    question: "¿Qué significa que una línea de la hoja de horas esté en cursiva?",
+    options: {
+      A: "Significa que la línea ha sido facturada.",
+      B: "Significa que la línea ha sido validada.",
+      C: "Significa que la línea está relacionada con un proyecto o tarea para la cual el usuario aún no ha enviado una hoja de horas durante el período mostrado."
+    },
+    answer: "C"
+  },
+  {
+    section: "Hojas de horas trabajadas",
+    question: "¿Cuál de las siguientes afirmaciones es verdadera?",
+    options: {
+      A: "Los empleados no pueden editar una hoja de horas que sea anterior a su hoja de horas validada más reciente.",
+      B: "Los empleados no pueden editar una hoja de horas cuando una hoja de horas de un período anterior aún no ha sido validada.",
+      C: "Los empleados no pueden editar una hoja de horas fuera de su horario laboral."
+    },
+    answer: "A"
+  },
+  {
+    section: "Hojas de horas trabajadas",
+    question: "¿Qué sucede cuando se habilita la configuración de 'Validación de hojas de horas'?",
+    options: {
+      A: "Las hojas de horas trabajadas deben ser aprobadas por el jefe de proyecto antes de poder ser enviadas.",
+      B: "Los empleados solo pueden registrar su tiempo después de que sus hojas de registro horario sean validadas por su gerente.",
+      C: "Las hojas de horas requieren validación por parte de un supervisor antes de ser utilizadas por la aplicación de nómina o facturación."
+    },
+    answer: "A"
+  },
+  {
+    section: "Hojas de horas trabajadas",
+    question: "¿Qué ocurre al hacer clic en uno de los botones con letras (por ejemplo, a, b, c) que aparecen a la izquierda de una hoja de control horario?",
+    options: {
+      A: "Abres la tarea vinculada a la hoja de horas.",
+      B: "Abres el proyecto vinculado a la hoja de horas.",
+      C: "Inicias el temporizador de la tarea relacionada."
+    },
+    answer: "C"
+  },
+  {
+    section: "Hojas de horas trabajadas",
+    question: "En la vista 'Todas las hojas de horas', ¿qué significa que una duración aparezca en naranja?",
+    options: {
+      A: "Significa que el empleado trabajó horas extras ese día.",
+      B: "Significa que el empleado se tomó el día libre ese día.",
+      C: "Significa que el empleado trabajó menos horas de las necesarias ese día."
+    },
+    answer: "A"
+  },
+
+  // ═══════════════════════════════════════════════
+  // CONTABILIDAD
+  // ═══════════════════════════════════════════════
+  {
+    section: "Contabilidad",
+    question: "¿Qué métodos de depreciación existen para un activo?",
+    options: {
+      A: "Descendente, línea recta, luego descendente y línea recta.",
+      B: "Descendente, descendente y luego línea recta, y línea recta.",
+      C: "Decreciente, Decreciente y luego Línea recta, Línea recta y Progresivo."
+    },
+    answer: "B"
+  },
+  {
+    section: "Contabilidad",
+    question: "¿Qué sucede si no se ha configurado una divisa para una cuenta en su plan de cuentas?",
+    options: {
+      A: "La cuenta puede utilizarse para transacciones en cualquier divisa.",
+      B: "La cuenta solo puede utilizarse para transacciones en la moneda principal de la empresa.",
+      C: "La gestión de divisas no se puede realizar a nivel de cuenta, solo a nivel de asiento contable."
+    },
+    answer: "B"
+  },
+  {
+    section: "Contabilidad",
+    question: "¿Cómo se pueden actualizar los tipos de cambio automáticamente?",
+    options: {
+      A: "Habilitando la opción de tipo de cambio automáticos en la configuración de contabilidad.",
+      B: "Los tipos de cambio se actualizan automáticamente cuando el diario contable tiene un asiento contable con una moneda diferente.",
+      C: "Por defecto, los tipos de cambio se actualizan diariamente y pueden actualizar manualmente mediante el botón actualizar."
+    },
+    answer: "A"
+  },
+  {
+    section: "Contabilidad",
+    question: "¿Cómo se activan las acciones de seguimiento?",
+    options: {
+      A: "En función del número de días de retraso a partir de la fecha de creación de la factura.",
+      B: "Basado en el número de días de retraso a partir de la fecha de vencimiento de la factura.",
+      C: "Basado en el número de días de retraso a partir de la fecha de emisión de la factura."
+    },
+    answer: "B"
+  },
+  {
+    section: "Contabilidad",
+    question: "¿Qué información se puede definir en un registro de contacto?",
+    options: {
+      A: "El método de pago predeterminado, el método predeterminado para el envío de facturas y el seguimiento de las mismas.",
+      B: "O el seguimiento de las facturas, las condiciones de pago y el método de cálculo de costes.",
+      C: "Las condiciones de pago predeterminadas, el método de pago predeterminado y el saldo pendiente."
+    },
+    answer: "C"
+  },
+  {
+    section: "Contabilidad",
+    question: "¿Cómo se pueden configurar los pagos para que generen asientos contables automáticamente?",
+    options: {
+      A: "Los pagos generan automáticamente asientos contables por defecto.",
+      B: "Habilita la opción 'Verificar en automático a publicar' en el diario libre para que se utilice para registrar el asiento del pago.",
+      C: "Al agregar una cuenta de pagos/cobros bancarios al método de pago en el libro diario que se utiliza para registrar el pago."
+    },
+    answer: "C"
+  },
+  {
+    section: "Contabilidad",
+    question: "¿Cómo se pueden cancelar automáticamente todos los asientos contables anteriores a una fecha específica?",
+    options: {
+      A: "Publique la fecha de bloqueo del campo de fecha de comunicación de facturas en la configuración de contabilidad.",
+      B: "Seleccione todas los asientos contables anteriores a la fecha especificada en la vista lista y haga clic en 'Cancelar entradas'.",
+      C: "En el modo desarrollador, vaya a la pestaña 'Configuraciones avanzadas' en el asiento de venta diario. Haga clic en el elemento 'Cancelar entradas publicadas con más de más y establezca la fecha específica."
+    },
+    answer: "B"
+  },
+  {
+    section: "Contabilidad",
+    question: "¿Cómo se pueden generar automáticamente facturas en la empresa A a partir de las facturas de la empresa B?",
+    options: {
+      A: "Habilite las transacciones entre empresas en la configuración general y, a continuación, seleccione con la opción 'Si/no más facturas/pedidos' en la empresa A.",
+      B: "Habilite los facturación a otras empresas en la configuración general y, a continuación, seleccione 'Crear facturas de proveedores' en la empresa A.",
+      C: "Habilite las transacciones u otras empresas en la configuración general y, a continuación, seleccione la opción 'Crear facturas de proveedores' en la empresa B."
+    },
+    answer: "B"
+  },
+  {
+    section: "Contabilidad",
+    question: "¿Cómo se puede establecer una fecha de bloqueo solo para las facturas de proveedores?",
+    options: {
+      A: "Establezca la fecha de bloqueo de los los asientos contables.",
+      B: "Establezca la fecha de bloqueo de facturas.",
+      C: "Establezca la fecha de compra de concurso."
+    },
+    answer: "B"
+  },
+  {
+    section: "Contabilidad",
+    question: "Cerrar un préstamo manualmente será:",
+    options: {
+      A: "Le permite seleccionar una fecha después de lo cual se analizarán todos los proveedores de préstamos restantes solo.",
+      B: "El creador autónomamente todas los costos del préstamo restantes.",
+      C: "Te permite seleccionar una fecha antes de la cual se cancelarán todas las participaciones que piden boldas."
+    },
+    answer: "B"
+  },
+  {
+    section: "Contabilidad",
+    question: "¿Cuál de las siguientes afirmaciones describe correctamente las prácticas contables periódicas o perpetuas?",
+    options: {
+      A: "En el método periódico, las facturas de los proveedores se registran como gastos y el inventario balanceo de existencias se ajusta en el asiento de cierre.",
+      B: "En el método periódico, las facturas de los proveedores se registran como stock-outs (entradas de existencias) y se contabilizan como gastos cuando se venden las mercancías.",
+      C: "En la contabilidad perpetua, las facturas de los proveedores se registran como gastos y el inventario balance de existencias se ajusta en el asiento de cierre."
+    },
+    answer: "A"
+  },
+
+  // ═══════════════════════════════════════════════
+  // HOJA DE CÁLCULO
+  // ═══════════════════════════════════════════════
+  {
+    section: "Hoja de cálculo",
+    question: "En el menú Datos, ¿qué significa el símbolo de advertencia que aparece junto al origen de datos de una lista o tabla dinámica insertada?",
+    options: {
+      A: "Existe un problema que impide que los datos de la lista o tabla dinámica se actualicen automáticamente.",
+      B: "El número de registros en la lista o tabla dinámica supera el máximo permitido, lo que afecta al rendimiento.",
+      C: "En la hoja de cálculo no hay ninguna lista ni tabla dinámica relacionada con esa fuente de datos."
+    },
+    answer: "A"
+  },
+  {
+    section: "Hoja de cálculo",
+    question: "En una hoja de cálculo que contiene datos dinámicos de Odoo, ¿cómo se puede acceder a un registro de la base de datos subyacente, por ejemplo, un pedido de venta específico?",
+    options: {
+      A: "Haciendo clic con el botón derecho en la celda y seleccionando 'Ver registro'.",
+      B: "Seleccionando la celda y haciendo clic en 'Ver' y luego en 'Mostrar' en la barra de menú.",
+      C: "Haciendo doble clic en la celda."
+    },
+    answer: "A"
+  },
+  {
+    section: "Hoja de cálculo",
+    question: "En una base de datos multicompañía con la Compañía A, la Compañía B y la Compañía C, ¿cómo puede asegurarse de que solo los usuarios de la Compañía A y la Compañía B puedan acceder a un nuevo panel de control que usted cree?",
+    options: {
+      A: "En la configuración del panel de control, establezca qué usuarios de qué empresas pueden acceder al mismo.",
+      B: "Debes duplicar el panel de control y asignar cada copia a una sola empresa.",
+      C: "Esto no es posible; cualquier panel de control es visible para todas las empresas presentes en la base de datos."
+    },
+    answer: "A"
+  },
+
+  // ═══════════════════════════════════════════════
+  // HORA (RRHH)
+  // ═══════════════════════════════════════════════
+  {
+    section: "HORA",
+    question: "¿Cómo puedes tener superhéroes en tu equipo?",
+    options: {
+      A: "Al usar la aplicación de reclutamiento.",
+      B: "Mediante el uso del módulo de Empleos en línea.",
+      C: "Al usar la aplicación Referrals."
+    },
+    answer: "C"
+  },
+  {
+    section: "HORA",
+    question: "¿Cómo se envía automáticamente un correo electrónico a un candidato para que programe una entrevista en la aplicación de reclutamiento?",
+    options: {
+      A: "Edita la etapa correspondiente en el proceso y selecciona la plantilla de correo electrónico 'Reclutamiento: Programar entrevista'.",
+      B: "Seleccione la plantilla de correo electrónico 'Reclutamiento: Programar entrevista' en la página de configuración del puesto de trabajo.",
+      C: "La aplicación de reclutamiento envía automáticamente la plantilla de correo electrónico 'Reclutamiento: Programar entrevista' cuando el candidato pasa a la etapa de cualificado; no se requiere ninguna configuración adicional."
+    },
+    answer: "A"
+  },
+  {
+    section: "HORA",
+    question: "¿Cuál NO es un informe predeterminado disponible en la aplicación de Reclutamiento?",
+    options: {
+      A: "Análisis de la aplicación.",
+      B: "Análisis de fuentes.",
+      C: "Análisis del costo por contratación."
+    },
+    answer: "C"
+  },
+  {
+    section: "HORA",
+    question: "¿Cómo puede un usuario con los permisos necesarios cambiar la presencia de un empleado en la base de datos de Presente a Ausente?",
+    options: {
+      A: "En el panel de control de la aplicación Asistencias, haga clic en el registro de asistencia del empleado y seleccione Ausente.",
+      B: "En el panel de control de la aplicación Empleados, haga clic en el icono de Presencia > Ausente.",
+      C: "En el registro del empleado, haga clic en Acciones > Control de presencia > Establecer ausencia."
+    },
+    answer: "C"
+  },
+  {
+    section: "HORA",
+    question: "En la aplicación de nóminas, ¿qué información proporciona la calculadora de salarios?",
+    options: {
+      A: "Solo el pago bruto y neto.",
+      B: "El costo de la empresa, por mes y por año, solamente.",
+      C: "Los costos brutos, netos y de la empresa, más el costo de cualquier beneficio."
+    },
+    answer: "C"
+  },
+
+  // ═══════════════════════════════════════════════
+  // TPV
+  // ═══════════════════════════════════════════════
+  {
+    section: "TPV",
+    question: "Al configurar las reservas, ¿qué pasos debe seguir para habilitar la selección de mesas existentes?",
+    options: {
+      A: "Establezca el campo 'Asignación' en 'Por visitante'.",
+      B: "Habilitar 'Gestionar capacidades'.",
+      C: "Establezca el campo 'Libro' en 'Recursos'."
+    },
+    answer: "A"
+  },
+  {
+    section: "TPV",
+    question: "¿Por qué su impresora imprime los recibos pero no los pedidos de cocina?",
+    options: {
+      A: "Ha seleccionado el tipo de impresora incorrecto.",
+      B: "No agregaste las categorías de productos para imprimir.",
+      C: "Has activado la opción 'Recibo básico'."
+    },
+    answer: "B"
+  },
+  {
+    section: "TPV",
+    question: "¿Qué sucede al liquidar el saldo restante de un pedido de venta en el punto de venta?",
+    options: {
+      A: "Se deduce el pago inicial, lo que permite completar el pedido.",
+      B: "El pago inicial no se tiene en cuenta y el cliente vuelve a pagar el importe total.",
+      C: "Se deberá crear un nuevo pedido de venta por el importe restante."
+    },
+    answer: "A"
+  },
+
+  // ═══════════════════════════════════════════════
+  // COMPRA
+  // ═══════════════════════════════════════════════
+  {
+    section: "Compra",
+    question: "Al utilizar la conciliación de tres vías, para productos con Política de facturación = Cantidades recibidas, se carga una factura del proveedor por el importe total de la orden de compra antes de cualquier recepción. ¿Cómo se gestiona esto?",
+    options: {
+      A: "En el formulario de la factura, para 'Debo pagarse?' = No (folio la conciliación de 3 vías factura del recibido).",
+      B: "La carga de facturas será bloqueada hasta que se valide al menos un recibo.",
+      C: "La factura se carga y se marca automáticamente como pagadera en su totalidad, independientemente de los recibos."
+    },
+    answer: "B"
+  },
+  {
+    section: "Compra",
+    question: "¿Dónde define usted el plazo de entrega del proveedor?",
+    options: {
+      A: "En el formulario del producto, vaya a la pestaña Compra.",
+      B: "Vaya a Compras > Configuración > Listas de precios de proveedores.",
+      C: "Ambas opciones anteriores son iguales para definir el plazo de entrega del proveedor."
+    },
+    answer: "C"
+  },
+  {
+    section: "Compra",
+    question: "Si utiliza el método de cálculo de costes de 'coste medio', ¿cambiará el precio del producto una vez que lo reciba?",
+    options: {
+      A: "Sí.",
+      B: "Sí, pero solo si la factura del proveedor llega al mismo tiempo que el producto.",
+      C: "No."
+    },
+    answer: "A"
+  },
+  {
+    section: "Compra",
+    question: "Un producto se mide en pulgadas (in), pero su proveedor lo vende en pies (ft), donde 1 ft = 12 in. En la regla de reordenamiento del proveedor, el mínimo es 50, el máximo es 100 y el múltiplo es ft. Cuando se activa la regla, ¿cuál de las siguientes afirmaciones es VERDADERA?",
+    options: {
+      A: "Odoo muestra una advertencia preguntando si quieres comprar 72 pies en lugar de 72 pulgadas.",
+      B: "Según la regla de reordenamiento, se supone que debes pedir 55 pulgadas, pero como no es un múltiplo de 12, Odoo redondea automáticamente a 72 pulgadas (6 pies).",
+      C: "La columna del proveedor muestra '5 pies', lo que significa que debes realizar el pedido en múltiplos de 5 unidades."
+    },
+    answer: "A"
+  },
+  {
+    section: "Compra",
+    question: "Durante el proceso de venta, usted vende un producto a su cliente y selecciona la opción 'Dropshipping' en la línea del pedido. ¿Qué sucederá cuando se valide el pedido?",
+    options: {
+      A: "Se crea una orden de entrega que va directamente de su proveedor al cliente, no se generará una orden de compra.",
+      B: "Se creará una orden de entrega para su cliente. Usted pedirá el producto a su proveedor, lo recibirá y se lo entregará a su cliente.",
+      C: "Se creará una solicitud de cotización para el proveedor configurado en su producto. Una vez validada, se generará una operación DS para enviar directamente el producto del proveedor a su cliente."
+    },
+    answer: "C"
+  },
+  {
+    section: "Compra",
+    question: "Has confirmado varios pedidos de purchase en Odoo, pero algunos aún muestran el estado 'No reconocido'. ¿Qué indica este estado y cómo se puede actualizar?",
+    options: {
+      A: "Significa que el vendedor aún no ha confirmado que cumpla con el pedido.",
+      B: "Significa que la orden de compra aún no ha sido aprobada internamente y se actualizará automáticamente una vez que sea validada por un gerente.",
+      C: "Significa que el proveedor rechazó el pedido y que este debe cancelarse o reordenarse."
+    },
+    answer: "A"
+  },
+  {
+    section: "Compra",
+    question: "Al crear un nuevo 'Pedido Marco', ¿es posible configurar el acuerdo de compra para que caduque en una fecha específica?",
+    options: {
+      A: "No, un 'pedido general' solo se puede eliminar o archivar manualmente después de haber sido creado.",
+      B: "Sí, introduciendo la fecha deseada en el campo 'Vigencia del acuerdo'.",
+      C: "Sí, cambiando la 'Fecha de caducidad' de los productos incluidos en los formularios de cada producto."
+    },
+    answer: "B"
+  },
+  {
+    section: "Compra",
+    question: "¿Es posible crear solicitudes de cotización alternativas (RFQ) para varios proveedores, con los mismos productos, para encontrar el mejor precio?",
+    options: {
+      A: "Sí, haciendo clic en 'Crear alternativa' en la pestaña 'Alternativas' de una nueva solicitud de cotización y seleccionando 'Copiar productos'.",
+      B: "No, Odoo no permite crear solicitudes de cotización alternativas con los mismos productos y diferentes proveedores.",
+      C: "Sí, seleccionando dos RFQ en la página de resumen de RFQ, haciendo clic en el icono de 'engranar' y haciendo clic en 'crear cotización alternativa'."
+    },
+    answer: "A"
+  },
+
+  // ═══════════════════════════════════════════════
+  // INVENTARIO
+  // ═══════════════════════════════════════════════
+  {
+    section: "Inventario",
+    question: "¿Cuál de las siguientes afirmaciones es VERDADERA acerca de los productos con el tipo de producto establecido en 'Bienes' y el campo Seguimiento de inventario sin marcar?",
+    options: {
+      A: "No se pueden configurar reglas de reaprovisionamiento para este producto.",
+      B: "Las tareas o actividades podrán realizarse en el almacén para actualizar la disponibilidad.",
+      C: "El producto no se almacena en pequeños."
+    },
+    answer: "A"
+  },
+  {
+    section: "Inventario",
+    question: "¿Qué hace la opción 'mover paquete completo' cuando se activa dentro de los tipos de operación?",
+    options: {
+      A: "La opción 'Mover paquete completo' sirve para abrir de entrega y procesarlos contando el número.",
+      B: "La opción 'Mover paquete completo' mueve todos los paquetes al mismo tiempo.",
+      C: "La opción 'Mover paquete completo' traslada todo el contenido de un paquete de una ubicación a otra, sin necesidad de desempaquetarlo ni manipular los artículos uno por uno."
+    },
+    answer: "C"
+  },
+  {
+    section: "Inventario",
+    question: "Al realizar un ajuste de inventario que aumenta el stock de un producto de 0 a 5 unidades, ¿cuáles son los 'Tipos de ubicación' de las ubicaciones involucradas en el movimiento de stock resultante?",
+    options: {
+      A: "Los movimientos de stock utilizan siempre las mismas dos localizaciones fijas de inventario y una ubicación de inventario.",
+      B: "La cuenta de ajuste es del tipo 'Pérdidas de inventario' y una ubicación interior.",
+      C: "La traslada entre dos ubicaciones 'Internas'."
+    },
+    answer: "B"
+  },
+  {
+    section: "Inventario",
+    question: "¿Qué ocurre cuando la cantidad disponible de un producto se actualiza manualmente para aumentarla en 10 unidades?",
+    options: {
+      A: "Para actualizar la cantidad disponible, solo se actualiza la cantidad aparezca según el proceso de inventario.",
+      B: "La cantidad disponible se actualiza automáticamente en el resumen.",
+      C: "La cantidad disponible se actualiza a 10, y se ajusta el movimiento de inventario para basar en Cuenta la Demanda."
+    },
+    answer: "A"
+  },
+  {
+    section: "Inventario",
+    question: "Recibes dos unidades del mismo producto juntas, en WH/IN/12, utilizando el método de valoración de costo promedio, ambas con un costo de $44 cada una. Luego, abres Inventario > Informes > Stock y haces clic en Costo unitario para ver el historial de valoración. ¿Qué ves?",
+    options: {
+      A: "El historial que la cantidad recibida es el costo de la valoración de recibido.",
+      B: "La última región historial es tener tipologías de lista una misma valoración de toda la metodología $44.",
+      C: "Informe que no muestra nueva información sobre los costos."
+    },
+    answer: "B"
+  },
+
+  // ═══════════════════════════════════════════════
+  // MRP
+  // ═══════════════════════════════════════════════
+  {
+    section: "MRP",
+    question: "¿Cuándo se actualizan las cantidades previstas de los componentes utilizados en una orden de fabricación?",
+    options: {
+      A: "Al confirmarse el pedido de fabricación.",
+      B: "En la validación del producto terminado.",
+      C: "Cuando la orden de fabricación se marca como completada."
+    },
+    answer: "A"
+  },
+  {
+    section: "MRP",
+    question: "¿Cuándo debería una empresa utilizar el Plan Maestro de Producción (MPS, por sus siglas en inglés) en lugar de las reglas de reordenamiento?",
+    options: {
+      A: "Cuando desea mantener niveles fijos de inventario de seguridad que se repongan de forma continua para todos los productos.",
+      B: "Cuando produce bajo demanda (fabricación por encargo).",
+      C: "Cuando necesita planificar la producción con anticipación y la demanda puede calcularse con el calendario estándar."
+    },
+    answer: "C"
+  },
+  {
+    section: "MRP",
+    question: "¿Cómo se contabilizan los costes de los subproductos?",
+    options: {
+      A: "Solo estableciendo una participación en el costo del subproducto en la lista de materiales.",
+      B: "Solo estableciendo una participación en el coste del subproducto en su orden de fabricación.",
+      C: "Ya sea estableciendo una participación en el costo del subproducto en la lista de materiales y en la orden de fabricación."
+    },
+    answer: "C"
+  },
+  {
+    section: "MRP",
+    question: "Su MPS muestra una demanda prevista de 110 unidades para un producto con un tamaño de lote de lista de materiales de 40. ¿Qué sucede cuando hace clic en 'Ordenar'?",
+    options: {
+      A: "Se crean 3 MO, con 40 unidades en dos MO y 30 unidades en el tercer MO.",
+      B: "Se crean 2 órdenes de gestión, 40 unidades cada una.",
+      C: "4 MO con 30 cada una."
+    },
+    answer: "A"
+  },
+  {
+    section: "MRP",
+    question: "Una empresa de fabricación produce 5 productos identificados con números de serie. ¿Cómo se generan los números de serie para todos los productos terminados?",
+    options: {
+      A: "Habilita la función 'Lote/Número de serie personalizado' para el producto y, a continuación, haga clic en 'Generar número de serie'. Esto creará cinco números de serie en el campo Número de serie de las líneas detalladas.",
+      B: "Al producir tiene el número de serie en el campo 'Lote/Número de serie', por lo que Odoo crea pedidos pendientes para los cuatro números de serie restantes sin estado asignado.",
+      C: "Debe crear manualmente cinco órdenes de fabricación separadas, cada una con una cantidad de '1', para que Odoo asigne un número de serie a cada producto terminado individualmente."
+    },
+    answer: "A"
+  },
+  {
+    section: "MRP",
+    question: "En el sistema fagocítico mononuclear (MPS), ¿qué indica una célula de color naranja sobre la reposición de nutrientes?",
+    options: {
+      A: "Ya se ha generado un pedido de reposición, pero es necesario pedir más cambios para cumplir con el objetivo de stock de seguros.",
+      B: "La demanda o previsto es mayor que la demanda real, por lo que o cambio o recomponer el stock(s).",
+      C: "Ya se han repuesto demasiadas unidades."
+    },
+    answer: "A"
+  },
+  {
+    section: "MRP",
+    question: "Cuando se configuran centros de trabajo alternativos, ¿qué centro de trabajo seleccionará Odoo para las órdenes de trabajo?",
+    options: {
+      A: "Centro de trabajo con mayor capacidad.",
+      B: "Centro de trabajo con el menor coste por hora.",
+      C: "Centro de trabajo que menos a la fecha más pronto."
+    },
+    answer: "C"
+  },
+  {
+    section: "MRP",
+    question: "Al realizar una orden de trabajo, puede consumir:",
+    options: {
+      A: "Solo productos de la lista de materiales, en las cantidades cofrecidas por la lista de materiales.",
+      B: "A los productos de la lista de materiales, pero puede agregar cantidades adicionales.",
+      C: "Cualquier producto."
+    },
+    answer: "C"
+  },
+  {
+    section: "MRP",
+    question: "¿Qué representa la capacidad de un centro de trabajo?",
+    options: {
+      A: "Número de operaciones de una lista de costo clave que el centro de trabajo puede procesar en paralelo.",
+      B: "El número de unidades de producto que el centro de trabajo puede fabricar en paralelo.",
+      C: "El número de trabajadores en el centro de trabajo."
+    },
+    answer: "A"
+  },
+  {
+    section: "MRP",
+    question: "¿Cuál de los siguientes elementos NO se muestra en la tarjeta de una orden de fabricación en el panel de control de la planta de producción?",
+    options: {
+      A: "El avance materiales para completar el MO.",
+      B: "Nombre del MO.",
+      C: "El producto que se está fabricando."
+    },
+    answer: "C"
+  },
+  {
+    section: "MRP",
+    question: "¿Cómo se inicia el temporizador de una orden de trabajo en el módulo de Taller?",
+    options: {
+      A: "Haga clic en el encabezado de la tarjeta del trabajo de orden de trabajo.",
+      B: "Haga clic en 'Iniciar temporizador' en la parte inferior de la tarjeta de la tarea de la orden de trabajo.",
+      C: "Odoo no registra el tiempo en las órdenes de trabajo."
+    },
+    answer: "B"
+  },
+  {
+    section: "MRP",
+    question: "¿Dónde se puede consultar el coste de tramitación de una orden de trabajo específica?",
+    options: {
+      A: "Aplicación de fabricación > Operaciones > Órdenes de fabricación > seleccionar/búsqueda una orden de fabricación > Resumen de operaciones.",
+      B: "Aplicación de fabricación > Operaciones > Órdenes de fabricación > seleccionar/búsqueda una orden de fabricación > Órdenes de fabricación > Resumen de operaciones.",
+      C: "Aplicación de fabricación > Operaciones > Órdenes cs de fabricación > seleccionar/cercar de trabajo."
+    },
+    answer: "A"
+  },
+
+  // ═══════════════════════════════════════════════
+  // ESTUDIO (STUDIO)
+  // ═══════════════════════════════════════════════
+  {
+    section: "Estudio",
+    question: "¿Qué propiedad debería usar en un campo si desea mostrar un ejemplo de cómo debe completarse el campo (por ejemplo, 'Introduzca hasta 50 caracteres')?",
+    options: {
+      A: "Marcador de posición.",
+      B: "Información sobre herramientas de ayuda.",
+      C: "Valor predeterminado."
+    },
+    answer: "A" // Corregido de acuerdo a la instrucción anterior
+  },
+  {
+    section: "Estudio",
+    question: "¿Cómo se puede garantizar que los usuarios solo puedan elegir un año y un mes en un selector de fechas, en lugar de un día?",
+    options: {
+      A: "Establezca el formato de fecha en numérico y desactive la opción 'Mostrar día'.",
+      B: "Establezca el campo 'Precisión mínima' en 'Mes' y el campo 'Precisión máxima' en 'Año'.",
+      C: "Habilite las opciones 'Mostrar año' y 'Mostrar mes'."
+    },
+    answer: "B"
+  },
+  {
+    section: "Estudio",
+    question: "Al configurar un paso de aprobación en un botón, ¿qué opción, si está habilitada, impide que un usuario que aprueba un paso apruebe cualquier otro paso en el mismo registro?",
+    options: {
+      A: "Aprobación exclusiva.",
+      B: "Orden de aprobación.",
+      C: "Aprobación secuencial."
+    },
+    answer: "A"
+  },
+  {
+    section: "Estudio",
+    question: "¿Cuál es la función principal del 'Dominio antes de la actualización' en una regla de automatización?",
+    options: {
+      A: "Define el conjunto de registros sobre los que actúa la regla después de que se produce el evento desencadenante.",
+      B: "Define las condiciones que debe cumplir un registro antes de que se produzca el evento desencadenante.",
+      C: "Especifica los grupos de usuarios que tienen permiso para activar la regla de automatización."
+    },
+    answer: "A"
+  },
+  {
+    section: "Estudio",
+    question: "¿Cómo se puede garantizar que un cliente se agregue automáticamente como seguidor cuando el estado del proyecto cambie a 'En progreso'?",
+    options: {
+      A: "Utilice la acción 'Agregar seguidores' con el tipo 'Seguidores dinámicos' y, a continuación, seleccione el campo de socio correspondiente.",
+      B: "Utilice la acción 'Crear actividades' y seleccione el campo de correo electrónico del cliente.",
+      C: "Utilice la acción 'Enviar correo electrónico' y configure la acción como 'Mensaje'."
+    },
+    answer: "A"
+  },
+  {
+    section: "Estudio",
+    question: "Si una regla de automatización incluye tanto una acción de 'Actualizar registro' como una acción de 'Enviar correo electrónico', y la acción de 'Actualizar registro' se define primero, ¿qué datos utilizará la plantilla de correo electrónico?",
+    options: {
+      A: "El correo electrónico utilizará una combinación de los valores antiguos y nuevos, lo que requerirá un retraso de 5 minutos para garantizar la coherencia.",
+      B: "El correo electrónico siempre utilizará los valores originales de los campos antes de que se produjera el evento desencadenante, independientemente del orden de las acciones.",
+      C: "El correo electrónico utilizará los valores de campo actualizados, ya que las acciones se ejecutan en el orden en que se definen."
+    },
+    answer: "C"
+  },
+
+  // ═══════════════════════════════════════════════
+  // NUEVAS PREGUNTAS INTEGRADAS DEL MANUAL (MD)
+  // ═══════════════════════════════════════════════
+
+  // --- CONTABILIDAD ---
+  { section: "Contabilidad", question: "Se valida una factura de cliente con dos líneas, cada una tiene la misma cuenta y está sujeta al mismo impuesto del 10%. ¿Cuántos apuntes tendrá el asiento contable?", options: { A: "2", B: "4", C: "3" }, answer: "C" },
+  { section: "Contabilidad", question: "¿Qué ocurre al conciliar una transacción con una factura de cliente a través de la herramienta de conciliación bancaria?", options: { A: "Odoo crea un asiento contable que abona la cuenta de cobros pendientes y debita la cuenta por cobrar y lo vincula con la factura.", B: "Odoo vincula la factura con la transacción, pero el asiento contable no se crea hasta que se valida el extracto bancario.", C: "Odoo crea un asiento contable que abona la cuenta de cobros pendientes y debita la cuenta de deudores, y lo concilia con la factura en segundo plano." }, answer: "B" },
+  { section: "Contabilidad", question: "¿Cómo se pueden configurar acciones de seguimiento para los pagos pendientes de un cliente?", options: { A: "Es necesario configurar acciones de seguimiento con el botón inteligente 'Pagos' en la vista del cliente.", B: "Es necesario ir al registro de la empresa y hacer clic en el botón inteligente 'Niveles de seguimiento' en la parte superior.", C: "No es posible personalizar el seguimiento a nivel de cliente. Las acciones de seguimiento se configuran de forma global en la aplicación Contabilidad." }, answer: "B" },
+  { section: "Contabilidad", question: "¿Qué sucede al intentar confirmar una factura con una fecha contable anterior a la fecha de bloqueo de la declaración fiscal?", options: { A: "Odoo permite registrar la factura, pero arroja una advertencia para que el contador pueda revisar la factura.", B: "Odoo actualiza la fecha contable de la factura con la fecha de hoy de forma automática.", C: "Odoo genera un error y no permite confirmar la factura." }, answer: "B" },
+  { section: "Contabilidad", question: "¿Qué significa que una línea aparezca en rojo en una orden de compra?", options: { A: "Que la factura del proveedor no coincide con la orden de compra en cuanto a cantidades recibidas o facturadas.", B: "Que se excede el límite de crédito del proveedor.", C: "Que la fecha de entrega prevista ha expirado." }, answer: "A" },
+  { section: "Contabilidad", question: "¿Cómo se puede enviar un recordatorio de pago a un cliente para todas las facturas vencidas, excepto una?", options: { A: "En la vista de lista, seleccionando las facturas vencidas correspondientes y luego eligiendo 'Seguimiento' en el menú 'Acciones'.", B: "En el informe de seguimiento del cliente, haciendo clic en el icono del reloj ('Excluir del seguimiento') para la factura específica y luego haciendo clic en 'Enviar'.", C: "Seleccionando la factura en la vista de lista, haciendo clic en 'Acción', 'Enviar mensaje' y luego seleccionando la plantilla de correo electrónico 'Recordatorio de pago'." }, answer: "B" },
+  { section: "Contabilidad", question: "¿Qué comprobaciones se procesan en automático al revisar una declaración fiscal antes de presentarla?", options: { A: "Conciliación bancaria, cuentas por pagar/cobrar, activos y pasivos.", B: "Conciliación de facturas de proveedores y clientes, extractos bancarios, asientos no validados, diferencias de cambio no aplicadas.", C: "Cuentas de anticipos, nómina, préstamos, comisiones." }, answer: "B" },
+  { section: "Contabilidad", question: "¿Cómo se puede reemplazar un impuesto sobre las ventas del 15% con un impuesto sobre las ventas del 0% para los clientes que utilizan la posición fiscal exenta de impuestos?", options: { A: "En la pestaña 'Mapeo de impuestos' de la posición fiscal, se configura el impuesto del 15% como 'Impuesto sobre el producto' y el impuesto del 0% como 'Impuesto a aplicar'.", B: "En el registro del impuesto del 15%, hay que configurar la posición fiscal 'Exenta' y el impuesto del 0% en el campo 'Reemplazar con'.", C: "En el registro del impuesto del 0%, hay que asignar la posición fiscal 'Exenta' y agregar el impuesto del 15% al campo 'Reemplaza a'." }, answer: "A" },
+
+  // --- CRM ---
+  { section: "CRM", question: "¿Cuál de las siguientes operaciones se puede realizar al enviar un correo electrónico a una dirección de correo que tenga el alias de Odoo?", options: { A: "Crear un lead", B: "Convertir un lead a una oportunidad", C: "Cambiar la etapa de un lead" }, answer: "A" },
+  { section: "CRM", question: "¿Qué cambio visual ocurre al indicar que una oportunidad es de alta prioridad?", options: { A: "La oportunidad aparecerá hasta arriba de la etapa en la vista de kanban la próxima vez que se cargue...", B: "Se agrega una marca visual de prioridad a la oportunidad, pero se mantiene en la misma posición...", C: "La etiqueta de la oportunidad resaltará en la vista de kanban" }, answer: "C" },
+  { section: "CRM", question: "¿Qué indica el campo de probabilidad en una oportunidad?", options: { A: "La probabilidad que tiene una oportunidad de moverse a la siguiente etapa del flujo", B: "La probabilidad que hay de que respondan a la oferta que se envíe", C: "La probabilidad de realizar una venta con este prospecto" }, answer: "C" },
+  { section: "CRM", question: "¿Qué significa el campo 'Fecha de cierre' en un lead o una oportunidad?", options: { A: "La fecha en la que un lead se marcó como cerrado", B: "La fecha en la que se ganó o se perdió una oportunidad", C: "La fecha en la que se eliminó una oportunidad" }, answer: "B" },
+  { section: "CRM", question: "¿Cuál de las siguientes opciones sobre la relación entre una oportunidad y un cliente es falsa?", options: { A: "Es posible crear un nuevo registro de cliente antes o después de ganar la oportunidad", B: "Ya no será posible crear un nuevo cliente desde el formulario de la oportunidad una vez que se ganó", C: "Las oportunidades pueden existir en una base de datos sin tener que estar vinculadas a un cliente..." }, answer: "B" },
+  { section: "CRM", question: "¿Cuál de las siguientes afirmaciones sobre los ingresos recurrentes es verdadera?", options: { A: "Solo aparecen si la aplicación Suscripciones está instalada", B: "Se pueden activar en cada oportunidad individual", C: "Se pueden activar en los ajustes de CRM" }, answer: "C" },
+  { section: "CRM", question: "¿Quiénes pueden acceder a los reportes de la aplicación CRM?", options: { A: "Solo los administradores de la base de datos", B: "Solo los gerentes", C: "Todos los usuarios de CRM" }, answer: "C" },
+  { section: "CRM", question: "¿Cuál de las siguientes opciones no está presente para el enriquecimiento de leads en la página de ajustes de CRM?", options: { A: "Enriquecer leads según la demanda", B: "Enriquecer leads según el comportamiento del cliente", C: "Enriquecer todos los leads de forma automática" }, answer: "C" },
+  { section: "CRM", question: "¿Dónde se puede acceder al flujo individual de un equipo de ventas?", options: { A: "En Ventas > Equipos > Flujo", B: "En Configuración > Equipos > Flujo", C: "En Ventas > Oportunidades y filtrar por equipo" }, answer: "A" },
+
+  // --- PROYECTOS ---
+  { section: "Proyectos", question: "¿Cuál de las siguientes afirmaciones sobre subtareas es falsa?", options: { A: "Cualquier tarea puede convertirse en una subtarea", B: "Antes de usar las subtareas se debe habilitar la opción para poder usarlas", C: "La subtarea puede ser parte de un proyecto diferente a la tarea principal" }, answer: "A" },
+  { section: "Proyectos", question: "¿Cuál de las siguientes opciones no activa la creación de una tarea nueva cuando se establece recurrencia en una tarea?", options: { A: "Cuando la tarea se mueve a la última etapa de kanban", B: "Cuando la tarea se marca como cancelada", C: "Cuando la tarea se marca como hecha" }, answer: "B" },
+  { section: "Proyectos", question: "En un momento específico, el gráfico de trabajo pendiente representa:", options: { A: "El número de tareas en cada etapa", B: "El número de calificaciones negativas de clientes", C: "El número de tareas canceladas" }, answer: "A" },
+  { section: "Proyectos", question: "¿Qué información no se muestra en el tablero del proyecto?", options: { A: "Los objetivos del proyecto", B: "Las calificaciones de los clientes del proyecto", C: "La rentabilidad del proyecto" }, answer: "B" },
+  { section: "Proyectos", question: "¿Cuándo se muestra un objetivo en rojo?", options: { A: "Cuando una o más de sus tareas se cancelan", B: "Cuando la fecha límite del objetivo es hoy", C: "Cuando la fecha límite del objetivo pasó y al menos una de las tareas no está marcada como hecha o cancelada" }, answer: "C" },
+  { section: "Proyectos", question: "¿Qué pasa si se crea una tarea desde la vista kanban de un proyecto y se agrega '24h' al título?", options: { A: "Se agregará el texto '24h' al título de la tarea", B: "Se asignarán 24 horas a la tarea", C: "La fecha límite de la tarea será dentro de 24 horas" }, answer: "B" },
+  { section: "Proyectos", question: "¿Cuántos niveles de prioridad de tareas existen?", options: { A: "Tres", B: "Cinco", C: "Dos" }, answer: "A" },
+  { section: "Proyectos", question: "¿Qué pasa si se crea una tarea desde la vista de kanban de un proyecto y se agrega '#prioridad' al título?", options: { A: "Se agregará la etiqueta 'prioridad' a la tarea", B: "Se establecerá la prioridad de la tarea como alta", C: "Se agregará el texto '#prioridad' al título de la tarea" }, answer: "B" },
+
+  // --- INTRODUCCIÓN ---
+  { section: "Introducción", question: "En la vista de lista, ¿cuáles son los tipos de campo por los que se pueden ordenar?", options: { A: "Solo se pueden ordenar los campos simples, no los relacionados", B: "Solo se pueden ordenar los campos no calculados", C: "Solo se pueden ordenar los campos almacenados en la base de datos" }, answer: "C" },
+  { section: "Introducción", question: "¿Cómo se puede acceder al menú técnico?", options: { A: "Aparece de forma automática en el módulo de ajustes", B: "Primero se debe cargar el módulo técnico desde el módulo de aplicaciones", C: "Se debe activar el modo de desarrollador e ir al módulo de ajustes" }, answer: "C" },
+  { section: "Introducción", question: "¿Qué opción en Odoo ayuda al usuario a proteger mejor su cuenta?", options: { A: "Usar una red privada virtual (VPN)", B: "Usar una ventana de navegador en modo incógnito", C: "Usar la autenticación de dos factores" }, answer: "C" },
+  { section: "Introducción", question: "¿Qué debe hacer un usuario para activar o desactivar los recorridos de capacitación?", options: { A: "Ir a la aplicación Ajustes, abrir Preferencias del usuario y activar o desactivar la opción...", B: "Ir al menú de usuario, seleccionar Preferencias > Opciones de la interfaz y desmarcar 'Mostrar recorridos de capacitación'", C: "Activar el modo de desarrollador, abrir el menú de depuración y luego presionar el botón de la opción de capacitación..." }, answer: "B" },
+  { section: "Introducción", question: "¿Qué hay que hacer para guardar un filtro de búsqueda utilizado con frecuencia y poder usarlo después?", options: { A: "Agregar el filtro a las preferencias del usuario en los ajustes", B: "Hacer clic en Favoritos > Guardar búsqueda actual después de aplicar el filtro", C: "Se debe guardar el filtro como una vista personalizada en el modo de desarrollador" }, answer: "B" },
+
+  // --- IA ---
+  { section: "IA", question: "¿Cuáles de las siguientes opciones se pueden usar como fuentes para un agente de IA?", options: { A: "Solo campos de texto y notas de registro", B: "Archivos subidos, páginas de Artículos, documentos de la aplicación Documentos y enlaces de sitio web", C: "Solo páginas de Artículos y documentos de la aplicación Documentos" }, answer: "B" },
+  { section: "IA", question: "¿Qué significa que un agente de IA no tenga ningún tema asignado?", options: { A: "El agente puede dar información, pero no puede realizar cambios en la base de datos o realizar tareas", B: "El agente solo puede realizar tareas según la información disponible en las fuentes", C: "El agente tendrá acceso a todos los temas y a todas las herramientas de la base de datos" }, answer: "C" },
+  { section: "IA", question: "¿Cómo se puede activar la transcripción con IA en reuniones en Odoo?", options: { A: "Abrir la aplicación Conversaciones, ir a Configuración > Ajustes de voz y video...", B: "Ir a Artículos > Buscar plantillas y seleccionar 'Minutas de reuniones'", C: "Escribir '/' para abrir la paleta de comandos en un artículo, la pestaña de notas o la pestaña de descripción y seleccionar 'Transcripción de voz'" }, answer: "C" },
+  { section: "IA", question: "Se crea un agente IA con la opción 'Restringir a fuentes' habilitada. A este agente se le pregunta algo fuera de los temas o fuentes definidas, ¿cuál será la respuesta del agente?", options: { A: "Le informará al usuario que no tiene la información o los permisos necesarios para responder", B: "Cambiará a otro proveedor de forma automática", C: "Adivinará la respuesta más probable según las respuestas anteriores" }, answer: "A" },
+
+  // --- COMERCIO ELECTRÓNICO ---
+  { section: "Comercio electrónico", question: "En Comercio electrónico, ¿qué se debe hacer para mostrar los precios con impuestos incluidos?", options: { A: "Ir a Sitio web > Configuración > Ajustes y seleccionar el botón de opción 'Impuestos incluidos' en la sección Mostrar los precios de los productos", B: "Crear las listas de precios 'Impuestos incluidos' e 'Impuestos excluidos' para que el cliente elija una", C: "Ingresar el precio deseado en el campo 'Precio con impuestos incluidos' que aparece en la plantilla del producto" }, answer: "A" },
+  { section: "Comercio electrónico", question: "¿Cuándo genera Odoo una cotización desde el módulo Comercio electrónico?", options: { A: "Cuando se agrega un producto al carrito", B: "Cuando se hace clic en 'Pagar ahora' en el carrito", C: "Cuando se valida el pago" }, answer: "A" },
+  { section: "Comercio electrónico", question: "¿Cómo se puede evitar que los clientes compren productos publicados en una tienda de Comercio electrónico y que tengan que contactar a una persona para pedir más información?", options: { A: "Se debe deshabilitar la opción 'Mostrar precio' en la pestaña de Estilo...", B: "Se debe activar la función 'Evitar la venta de un producto si su precio es cero' en los ajustes del sitio web. Si el precio del producto es igual a 0, el botón 'Agregar al carrito' se reemplazará con el botón 'Contáctanos'.", C: "Se debe ir a la pestaña Estilo de la página del producto, deshabilitar la opción 'mostrar precio' y agregar un bloque de creación de formulario" }, answer: "B" },
+
+  // --- HOJAS DE HORAS TRABAJADAS ---
+  { section: "Hojas de horas trabajadas", question: "Es posible mostrar los puestos en la tabla de clasificación del registro de horas por...", options: { A: "La tasa de facturación y horas facturadas", B: "El tiempo total y las horas facturadas", C: "La tasa de facturación y el tiempo total" }, answer: "C" },
+  { section: "Hojas de horas trabajadas", question: "¿Qué función de la vista de tabla ayuda a identificar las horas que faltan en los registros de horas?", options: { A: "El filtro de horas faltantes", B: "El sistema de código de colores", C: "La función para detectar horas faltantes" }, answer: "B" },
+
+  // --- HOJA DE CÁLCULO ---
+  { section: "Hoja de cálculo", question: "¿Cuál es el propósito de la coincidencia de campos al configurar un filtro global?", options: { A: "Permite que el filtro le de formato en automático a las celdas que resulten...", B: "Permite configurar los permisos de acceso para asegurar que el usuario tiene la autorización de ver el campo que coincide", C: "Permite asegurarse que el filtro está trabajando en el campo correcto de la base de datos para cada origen de datos específico en la hoja de cálculo" }, answer: "C" },
+  { section: "Hoja de cálculo", question: "Cuando una hoja de cálculo se convierte en un tablero, ¿dónde se guarda la hoja de cálculo original?", options: { A: "La hoja de cálculo se mantiene en la aplicación Documentos, pero se establece como 'Sola lectura' de forma automática", B: "La hoja de cálculo se guarda en una carpeta de activos especial de Tableros...", C: "La hoja de cálculo se elimina de la aplicación Documentos y solo se puede acceder a ella desde la aplicación Tableros" }, answer: "A" },
+
+  // --- INVENTARIO ---
+  { section: "Inventario", question: "¿Dónde se define el costo de una variante de producto?", options: { A: "En el valor del atributo", B: "En la variante del producto", C: "En la plantilla del producto" }, answer: "B" },
+  { section: "Inventario", question: "Cuando los productos se entregan en Odoo, el inventario se mueve del almacén a la ubicación del cliente. ¿Qué tipo de valor de existencias debería mostrar normalmente la ubicación del cliente?", options: { A: "Un nivel positivo, porque los productos entregados ahora se registran como propiedad del cliente", B: "Un nivel de existencias negativo, porque los productos han salido de las existencias de tu empresa", C: "Cero, porque las ubicaciones de los clientes no pueden tener existencias" }, answer: "B" },
+  { section: "Inventario", question: "¿Cuál de las siguientes afirmaciones sobre el sistema de gestión de despacho es verdadera?", options: { A: "Es posible usar las direcciones de Google Maps para todos los destinos de entrega...", B: "Es posible configurar la capacidad de un vehículo de acuerdo al número de productos a transportar", C: "No es necesario configurar las ubicaciones de los muelles para cargar los artículos en un vehículo de entrega" }, answer: "B" },
+  { section: "Inventario", question: "Se crean dos reglas de reordenamiento automáticas para el mismo producto: una para el Almacén A (ruta de compra) y otra para el Almacén B (ruta de fabricación). ¿Qué sucede cuando las existencias están por debajo del mínimo en el Almacén B?", options: { A: "La regla falla porque los almacenes no pueden tener la misma regla...", B: "Odoo utiliza la primera regla (ruta de compra) porque la primera sobreescribe la fabricación", C: "El sistema genera una orden de fabricación de acuerdo con la segunda regla de reordenamiento" }, answer: "C" },
+  { section: "Inventario", question: "¿Cuál de las siguientes opciones NO crea movimientos de existencias?", options: { A: "Confirmar una orden de entrega", B: "Usar el botón 'Reubicar' en el tablero de ajustes de inventario", C: "Ir a Inventario > Reportes > Historial de movimientos y hacer clic en 'Nuevo'" }, answer: "C" },
+  { section: "Inventario", question: "Al actualizar las cantidades a la mano de 5 a 4 unidades para un producto específico, ¿qué movimiento de inventario se crea?", options: { A: "Un movimiento de 1 unidad de una ubicación interna a una ubicación de pérdidas de inventario", B: "Un movimiento de 4 unidades de una ubicación interna a una ubicación de pérdida...", C: "Un movimiento de la ubicación de pérdidas de inventario a su almacén" }, answer: "A" },
+  { section: "Inventario", question: "NO es posible definir la capacidad de una ubicación por:", options: { A: "Producto", B: "Tipo de paquete", C: "Volumen" }, answer: "B" },
+  { section: "Inventario", question: "Estás configurando un embalaje llamado 'Paquete de 6' para vender seis botellas de refresco juntas y el tipo de paquete es Caja. Hay una orden de entrega de 15 refrescos, ¿qué pasará al hacer clic en 'Incluir en el paquete'?", options: { A: "Odoo creará un paquete con los 15 refrescos, pero no aplicará ningún tipo de paquete...", B: "Odoo creará automáticamente tres paquetes en cajas (dos completos y uno parcial) por el paquete de 6", C: "Odoo mostrará una advertencia y no usará el embalaje porque la cantidad no coincide con la unidad de embalaje definida" }, answer: "B" },
+  { section: "Inventario", question: "Es necesario configurar una ruta específica para FedEx en un almacén, pero debe ser distinta a la ruta de DHL. ¿Qué hay que hacer?", options: { A: "Ir a Inventario > Configuración > Métodos de envío y elegir uno en el campo", B: "Hacer clic en el icono de 'Camión de envíos' que se encuentra en los traslados configurados en un punto de control de calidad", C: "Crear una ruta personalizada para el método de envío y seleccionarla en el campo 'Ruta' en Inventario > Configuración..." }, answer: "C" },
+
+  // --- VENTAS ---
+  { section: "Ventas", question: "Si el 1 de septiembre se confirma una orden de venta (y hay suficientes existencias para cubrirla) que contiene un producto con plazo de entrega al cliente de 5 días con 2 días adicionales de seguridad, ¿cuál sería la fecha programada para la entrega?", options: { A: "8 de septiembre", B: "6 de septiembre", C: "4 de septiembre" }, answer: "A" },
+  { section: "Ventas", question: "¿Qué significa que la cantidad pronosticada de un producto sea mayor a la cantidad a la mano?", options: { A: "Se activó la opción 'Incluir componentes en el pronóstico'...", B: "Se planea que lleguen nuevos productos a las existencias ya sea por compras, órdenes de fabricación o devoluciones", C: "Ocurrió un error en una orden de venta..." }, answer: "B" },
+  { section: "Ventas", question: "Si se confirma una cotización con un producto de tipo 'Bienes' cuya política de facturación es 'Cantidades entregadas', ¿cuál de las siguientes afirmaciones es verdadera?", options: { A: "Se puede generar el borrador de factura de una orden de entrega que se encuentre en la etapa 'Borrador'", B: "La opción para generar un borrador de factura solo estará disponible después de que se haya procesado la orden de entrega", C: "Se genera automáticamente un borrador de factura después de que se haya procesado una orden de entrega" }, answer: "B" },
+  { section: "Ventas", question: "¿Qué significa que el tipo de un producto sea 'Combo'?", options: { A: "Que al comprar este tipo de producto, el cliente pueda seleccionar un producto de una lista de opciones configuradas", B: "Que este producto es fabricado", C: "Que al comprar este producto, el cliente debe seleccionar múltiples variantes" }, answer: "A" },
+  { section: "Ventas", question: "¿Para qué se utiliza el campo 'Plazo de entrega al cliente' del formulario del producto?", options: { A: "Para calcular la fecha de la orden basada en la fecha de la cotización", B: "Para calcular el número de días que pasarán entre la confirmación de la orden de venta y la entrega", C: "Para confirmar que se mostrarán los términos y condiciones en la cotización" }, answer: "B" },
+  { section: "Ventas", question: "¿Cómo se puede evitar que se utilice un producto específico en una cotización?", options: { A: "Se tiene que archivar el producto", B: "Se debe configurar una advertencia de bloqueo en el producto. Las advertencias de venta deben estar activadas", C: "Ambas soluciones son correctas" }, answer: "C" },
+  { section: "Ventas", question: "¿Cómo se configura un producto de ventas adicionales para que aparezca en la parte inferior de otra página de producto en la tienda de Comercio electrónico?", options: { A: "Es necesario elegir el producto de ventas adicionales en el campo 'Productos alternativos' de la pestaña 'Ventas' del producto de comercio electrónico", B: "Es necesario arrastrar el producto de la página del producto de Odoo y soltarlo en el sitio web...", C: "No hay forma de agregar un producto de ventas adicionales en la parte inferior..." }, answer: "A" },
+
+  // --- COMPRAS ---
+  { section: "Compra", question: "Después de que el comprador confirma una orden de compra, ¿cómo crea el vendedor la orden de venta correspondiente con EDI?", options: { A: "La base de datos del comprador envía la orden de compra de forma automática a la lista de las órdenes de venta del vendedor", B: "El vendedor debe descargar el XML del portal del comprador y subirlo a Ventas", C: "El vendedor debe hacer clic en el botón 'Descargar' que aparece en el correo que reciba para subir el PDF al tablero de Ventas" }, answer: "A" },
+  { section: "Compra", question: "¿El sistema crea una recepción en automático al confirmar una solicitud de cotización?", options: { A: "Sí, la aplicación Inventario la crea", B: "Sí, si hay productos de tipo 'Bienes' en la solicitud", C: "Las dos respuestas anteriores son verdaderas" }, answer: "C" },
+  { section: "Compra", question: "¿Es posible agregar más líneas a una orden de compra luego de validarla?", options: { A: "Sí, siempre y cuando la orden de compra no esté bloqueada", B: "Sí, siempre y cuando el cliente no haya recibido la orden de compra", C: "No, nunca" }, answer: "A" },
+  { section: "Compra", question: "Un almacén lleva control del inventario líquido en litros, pero su proveedor vende en galones. Se crea un galón como una nueva unidad de medida. ¿Qué condición debe cumplirse para que Odoo convierta galones y litros de forma automática al comprar el producto?", options: { A: "Crear la unidad 'Galones', configurar su unidad de referencia en litros, y si una solicitud de cotización usa galones como unidad, la recepción mostrará litros", B: "Crear la unidad 'Galones' dentro de la categoría de unidad de medida 'Volumen', que usa litros como unidad de medida de referencia", C: "Gracias a la inteligencia artificial, Odoo hace la conversión de forma automática sin tener que hacer ajustes" }, answer: "B" },
+  { section: "Compra", question: "¿Qué pasa al configurar la aprobación de las órdenes de compra a un monto mínimo de $200?", options: { A: "Las solicitudes de cotización deberán tener un mínimo de $200 para poderlas confirmar", B: "Solo un usuario con permisos de acceso 'Administrador' en Compras podrá crear una solicitud de cotización de $200 (o más)", C: "Un usuario con permisos de acceso 'Administrador' en Compras deberá aprobar cualquier solicitud de cotización de $200 (o más) que haya creado un usuario con permisos de acceso 'Usuario'" }, answer: "C" },
+  { section: "Compra", question: "Al habilitar la función 'Conciliación de tres vías', ¿cuándo se sabrá cuáles de las facturas de proveedor pueden pagarse por las cantidades recibidas?", options: { A: "No será posible saberlo, ya que esta función solo es útil cuando la política de facturación es 'Sobre cantidades ordenadas'", B: "Cuando el campo 'Se debe pagar' de la pestaña 'Otra información' de la factura del proveedor diga Sí", C: "Cuando el estado de la factura del proveedor cambie de 'En proceso de pago' a 'Pagado'" }, answer: "B" },
+  { section: "Compra", question: "Al configurar 'Basado en' con 'Últimos 7 días' y 'Reabastecer para' con '15 días', Odoo sugiere cantidades para varios productos. ¿Qué datos utiliza Odoo para generar estas sugerencias?", options: { A: "Solo considera las órdenes de compra confirmadas en los últimos 7 días para calcular la demanda diaria y luego la multiplica por 15", B: "Promedia el precio del producto de los últimos 7 días y lo compara con el precio de los próximos 15 días...", C: "Considera las cantidades entregadas durante los últimos 7 días para calcular la demanda diaria, las multiplica por 15 y resta las existencias a la mano" }, answer: "C" },
+  { section: "Compra", question: "Para la función Sugerir, cuando 'Basado en' está configurado con 'Pronosticado', ¿cómo afecta la opción 'Reabastecer para X días' a lo que se muestra?", options: { A: "La cantidad pronosticada en la tarjeta cambia para reflejar las existencias proyectadas después de X días...", B: "La cantidad sugerida es la necesaria para llevar la cantidad pronosticada hasta la cantidad máxima definida en una regla de reordenamiento", C: "Las existencias proyectadas son revisadas después de X días para garantizar que el pronóstico cumpla con la cantidad mínima…" }, answer: "B" },
+
+  // --- MARKETING ---
+  { section: "Marketing", question: "¿Cuál de las siguientes opciones NO es un activador válido para una actividad de automatización de marketing?", options: { A: "1 semana después de que el correo rebota", B: "2 días después de reenviar el correo", C: "0 horas después de hacer clic en el correo" }, answer: "B" },
+  { section: "Marketing", question: "Al editar una plantilla de correo electrónico en la aplicación Marketing por correo aparece una barra de herramientas del lado derecho del cuerpo del mensaje. ¿Qué hay en la pestaña 'Diseño'?", options: { A: "Varias opciones de diseño para elementos como titulos, enlaces, botones y más.", B: "Un campo vacio para agregar una dirección de correo que recibirá mensajes relacionados con esta campaña.", C: "Una lista con todas las plantillas de correo electrónico disponibles para elegir una y cambiar la plantilla a editar." }, answer: "A" },
+
+  // --- ENCUESTA ---
+  { section: "Encuesta", question: "¿Qué pasará al elegir 'Aleatorio por sección' como opción en 'Selección de preguntas'?", options: { A: "El orden de las preguntas dentro de cada sección cambiará para cada participante que responda la encuesta.", B: "La encuesta solo mostrará preguntas aleatorias en cada sección de la encuesta y los usuarios podrán configurar cuántas preguntas de este tipo aparecerán.", C: "La encuesta asignará diferentes secciones de preguntas de modo aleatorio a cada participante para que hayan distintas respuestas." }, answer: "A" },
+  { section: "Encuesta", question: "¿Qué significa el icono de estrella que aparece junto a una pregunta en una encuesta?", options: { A: "Que la pregunta solo aparece si una respuesta anterior la activa.", B: "Que al menos una de las respuestas a esta pregunta esta configurada para crear un lead.", C: "Que todas las respuestas a esta pregunta crean un lead de forma automática." }, answer: "B" },
+  { section: "Encuesta", question: "¿Qué pasa al hacer clic en Ver resultados > Analizar resultados en una encuesta?", options: { A: "El sistema crea una comparación lado a lado para cada participante.", B: "El sistema inserta los resultados de la encuesta en una hoja de cálculo.", C: "El sistema compara los resultados de varias encuestas." }, answer: "A" },
+
+  // --- SITIO WEB ---
+  { section: "Sitio web", question: "¿Qué herramienta de reportes está disponible en los ajustes y permite monitorear el tráfico de un sitio web?", options: { A: "Plausible", B: "Plausible y Google Analytics", C: "Plausible, Google Analytics y Google Search Console" }, answer: "C" },
+  { section: "Sitio web", question: "¿El muro de qué red social se puede mostrar en el sitio web?", options: { A: "Instagram", B: "Tik Tok", C: "Linkedin" }, answer: "A" },
+  { section: "Sitio web", question: "En la herramienta 'Optimizar SEO', ¿qué campos se pueden completar con IA?", options: { A: "El titulo y la descripción.", B: "Las palabras clave.", C: "El titulo, la descripción y las palabras clave." }, answer: "C" },
+
+  // --- CONOCIMIENTO ---
+  { section: "Conocimiento", question: "¿En qué tipo de artículos aplica el ajuste de Visibilidad al compartirlos?", options: { A: "Se queda en la categoría privada y otros pueden leerlo o editarlo.", B: "Se envía a la categoria 'Compartido' en automático.", C: "Se envía a la categoria 'Espacio de trabajo' en automático." }, answer: "C" },
+  { section: "Conocimiento", question: "¿Qué artículos aparecen en la categoría 'Compartido'?", options: { A: "Articulos que se comparten con todos los usuarios internos.", B: "Artículos que se comparten con usuarios específicos sin acceso predeterminado.", C: "Solo los artículos a los que puede acceder el autor." }, answer: "A" }
+];
+
+// Respuestas marcadas en las imágenes del examen (null = no respondida)
+// Esta matriz de estados sigue coincidiendo con las primeras 106 preguntas,
+// las preguntas nuevas (index > 105) simplemente serán 'null' porque el array se desborda con seguridad usando '?? null' en el foreach.
+const selectedAnswers = [
+  // Introducción (0-5)
+  "B","B","B","A","A","B",
+  // Ventas (6-15)
+  "B","C","B","A","A","C","B","B","B","B",
+  // Encuesta (16-18)
+  "B","B","B",
+  // CRM (19-28)
+  "B","C","A","C","A","C","C","A","C","C",
+  // AI (29-33)
+  "A",null,"B","B","A",
+  // Marketing (34-36)
+  "C","A","A",
+  // Sitio web (37-40)
+  "A","B","A","A",
+  // Comercio electrónico (41-44)
+  "C","C","B","A",
+  // Conocimiento (45-47)
+  "B","B","A",
+  // Hojas de horas trabajadas (48-52)
+  "C","A","A","C","A",
+  // Contabilidad (53-63)
+  "B","B","A","B","C","C","B","B","A","B","A",
+  // Hoja de cálculo (64-66)
+  "A","A","A",
+  // HORA (67-71)
+  "C","A","C",null,"C",
+  // TPV (72-74)
+  "A",null,"A",
+  // Compra (75-82)
+  "B","C","A","A","C",null,"C","A",
+  // Inventario (83-87)
+  "A","C","B","A","B",
+  // MRP (88-99)
+  "A","C","C",null,"A","A","B","C","A","A","B","A",
+  // Estudio (100-105)
+  "B","B","A","A",null,null
+];
+
+questions.forEach((q, i) => { q.selected = selectedAnswers[i] ?? null; });
+
+// ─── STATE ───────────────────────────────────────────────
+let mode = 'study';
+let activeSection = 'all';
+let searchTerm = '';
+let answered = {};
+let correct = 0;
+let revealed = {};
+
+// ─── INIT ─────────────────────────────────────────────────
+function init() {
+  const sections = [...new Set(questions.map(q => q.section))];
+  document.getElementById('totalCount').textContent = questions.length;
+  document.getElementById('sectionCount').textContent = sections.length;
+
+  // Fill section filter
+  const sel = document.getElementById('sectionFilter');
+  sections.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = s;
+    sel.appendChild(opt);
+  });
+
+  // Tabs
+  const tabs = document.getElementById('sectionTabs');
+  const allTab = document.createElement('button');
+  allTab.className = 'tab active'; allTab.textContent = 'Todas';
+  allTab.onclick = () => filterBySection('all', allTab);
+  tabs.appendChild(allTab);
+
+  sections.forEach(s => {
+    const t = document.createElement('button');
+    t.className = 'tab'; t.textContent = s;
+    t.onclick = () => filterBySection(s, t);
+    tabs.appendChild(t);
+  });
+
+  // Events
+  document.getElementById('searchInput').addEventListener('input', e => {
+    searchTerm = e.target.value.toLowerCase();
+    render();
+  });
+  document.getElementById('sectionFilter').addEventListener('change', e => {
+    activeSection = e.target.value || 'all';
+    updateTabs();
+    render();
+  });
+
+  render();
+}
+
+function filterBySection(sec, tab) {
+  activeSection = sec;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  document.getElementById('sectionFilter').value = sec === 'all' ? '' : sec;
+  render();
+}
+
+function updateTabs() {
+  document.querySelectorAll('.tab').forEach(t => {
+    const isAll = t.textContent === 'Todas' && activeSection === 'all';
+    const match = t.textContent === activeSection;
+    t.classList.toggle('active', isAll || match);
+  });
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('btnStudy').classList.toggle('active', m === 'study');
+  document.getElementById('btnPractice').classList.toggle('active', m === 'practice');
+
+  if (m === 'practice') {
+    answered = {}; correct = 0; revealed = {};
+    document.getElementById('progressBar').style.display = 'block';
+    document.getElementById('scorePanel').classList.remove('visible');
+    updateScore();
+  } else {
+    document.getElementById('progressBar').style.display = 'none';
+    document.getElementById('scorePanel').classList.remove('visible');
+  }
+
+  // Close all cards
+  document.querySelectorAll('.q-card').forEach(c => c.classList.remove('expanded'));
+  render();
+}
+
+function updateScore() {
+  const total = questions.length;
+  const ans = Object.keys(answered).length;
+  const corr = Object.values(answered).filter(v => v).length;
+  document.getElementById('answeredCount').textContent = ans;
+  document.getElementById('correctCount').textContent = corr;
+
+  if (mode === 'practice') {
+    const pct = total ? Math.round(ans / total * 100) : 0;
+    document.getElementById('progressFill').style.width = pct + '%';
+
+    if (ans === total) {
+      const score = Math.round(corr / total * 100);
+      const panel = document.getElementById('scorePanel');
+      const big = document.getElementById('scoreBig');
+      panel.classList.add('visible');
+      big.textContent = score + '%';
+      big.className = 'score-big ' + (score >= 70 ? 'good' : score >= 50 ? 'ok' : 'bad');
+      document.getElementById('scoreText').textContent =
+        `${corr} correctas de ${total} preguntas`;
+    }
+  }
+}
+
+function getFiltered() {
+  return questions.filter((q, i) => {
+    const secOk = activeSection === 'all' || q.section === activeSection;
+    const term = searchTerm;
+    const searchOk = !term ||
+      q.question.toLowerCase().includes(term) ||
+      Object.values(q.options).some(o => o.toLowerCase().includes(term));
+    return secOk && searchOk;
+  });
+}
+
+function render() {
+  const filtered = getFiltered();
+  const list = document.getElementById('questionsList');
+  const count = document.getElementById('resultCount');
+  count.innerHTML = `Mostrando <span>${filtered.length}</span> de <span>${questions.length}</span> preguntas`;
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="emoji">🔍</div><p>No se encontraron preguntas.</p></div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  filtered.forEach((q, fi) => {
+    const globalIdx = questions.indexOf(q);
+    const card = document.createElement('div');
+    card.className = 'q-card' + (mode === 'practice' ? ' practice-mode' : '');
+    card.dataset.idx = globalIdx;
+
+    const optKeys = Object.keys(q.options);
+    let optHtml = '';
+    optKeys.forEach(key => {
+      const isCorrect = key === q.answer;
+      const isUserSelected = q.selected != null && key === q.selected;
+      const wasAnswered = answered[globalIdx] !== undefined;
+      const wasSelected = revealed[globalIdx] === key;
+
+      let cls = 'option';
+      if (mode === 'study') {
+        if (isCorrect) cls += ' correct';
+        else if (isUserSelected) cls += ' user-selected';
+      }
+      if (mode === 'practice' && wasAnswered) {
+        if (wasSelected && isCorrect) cls += ' selected-correct';
+        else if (wasSelected && !isCorrect) cls += ' selected-wrong';
+        else if (isCorrect) cls += ' correct';
+      }
+
+      optHtml += `
+        <div class="${cls}" onclick="selectOption(${globalIdx}, '${key}', this)">
+          <div class="opt-letter">${key}</div>
+          <div class="opt-text">${q.options[key]}</div>
+          ${mode === 'study' && isCorrect ? '<div class="correct-badge">✓ Correcta</div>' : ''}
+          ${mode === 'study' && isUserSelected && !isCorrect ? '<div class="user-selected-badge">Tu resp.</div>' : ''}
+        </div>`;
+    });
+
+    card.innerHTML = `
+      <div class="q-header" onclick="toggleCard(this.parentElement)">
+        <div class="q-num">${fi + 1}</div>
+        <div class="q-meta">
+          <div class="q-section">${q.section}</div>
+          <div class="q-text">${q.question}</div>
+        </div>
+        <div class="q-toggle">+</div>
+      </div>
+      <div class="q-body">
+        <div class="options-list">${optHtml}</div>
+      </div>`;
+
+    list.appendChild(card);
+  });
+}
+
+function toggleCard(card) {
+  const wasExpanded = card.classList.contains('expanded');
+  // Close others
+  document.querySelectorAll('.q-card.expanded').forEach(c => c.classList.remove('expanded'));
+  if (!wasExpanded) card.classList.add('expanded');
+}
+
+function selectOption(idx, key, el) {
+  if (mode !== 'practice') return;
+  if (answered[idx] !== undefined) return; // already answered
+
+  const q = questions[idx];
+  const isCorrect = key === q.answer;
+  answered[idx] = isCorrect;
+  revealed[idx] = key;
+
+  // Re-render options inside this card
+  const card = el.closest('.q-card');
+  const optEls = card.querySelectorAll('.option');
+  const optKeys = Object.keys(q.options);
+
+  optEls.forEach((opt, i) => {
+    const optKey = optKeys[i];
+    const optCorrect = optKey === q.answer;
+    const optSelected = optKey === key;
+
+    opt.classList.remove('selected-correct', 'selected-wrong', 'correct');
+    if (optSelected && optCorrect) opt.classList.add('selected-correct');
+    else if (optSelected && !optCorrect) opt.classList.add('selected-wrong');
+    else if (optCorrect) opt.classList.add('correct');
+  });
+
+  updateScore();
+}
+
+init();
+</script>
+</body>
+</html>
