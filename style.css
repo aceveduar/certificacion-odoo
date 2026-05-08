@@ -581,6 +581,18 @@ h1 {
 .pf-btn.active span { background: rgba(255,255,255,0.2); }
 .pf-btn.sin.active { background: rgba(100,116,139,0.2); border-color: var(--muted); color: var(--text); }
 
+/* PRUEBA BADGE en opt-actions */
+.prueba-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 100px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.prueba-badge.prueba1 { background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.35); }
+.prueba-badge.prueba2 { background: rgba(251,146,60,0.15);  color: #fb923c; border: 1px solid rgba(251,146,60,0.35); }
+
 /* PRUEBA TAG en card */
 .prueba-tag {
   display: inline-block;

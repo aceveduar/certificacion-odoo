@@ -607,8 +607,15 @@ function render() {
         </div>`;
       } else if (mode === 'study') {
         const badges = [];
-        if (isCorrect)  badges.push('<span class="correct-badge">✓ Correcta</span>');
-        if (isMyAnswer) badges.push('<span class="my-answer-badge">📌 Mi resp.</span>');
+        const pruebaLabel = q.prueba ? `<span class="prueba-badge ${q.prueba}">${q.prueba === 'prueba1' ? 'P1' : 'P2'}</span>` : '';
+        if (isCorrect)  {
+          badges.push('<span class="correct-badge">✓ Correcta</span>');
+          if (pruebaLabel) badges.push(pruebaLabel);
+        }
+        if (isMyAnswer) {
+          badges.push('<span class="my-answer-badge">📌 Mi resp.</span>');
+          if (pruebaLabel) badges.push(pruebaLabel);
+        }
         if (badges.length) rightHtml = `<div class="opt-actions">${badges.join('')}</div>`;
       }
 
