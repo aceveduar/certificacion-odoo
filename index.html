@@ -154,17 +154,15 @@ let answered = {};
 let revealed = {};
 let auditorMode = false;
 let flagFilter = null;
-let flags = JSON.parse(localStorage.getItem('odoo_flags') || '{}');
 
-function saveFlags() {
-  localStorage.setItem('odoo_flags', JSON.stringify(flags));
-}
-
-function setFlag(qId, status, e) {
+async function setFlag(qId, status, e) {
   e.stopPropagation();
-  const key = String(qId);
-  flags[key] = flags[key] === status ? null : status;
-  saveFlags();
+  const q = questions.find(q => q.id === qId);
+  if (!q) return;
+  const newStatus = q.status === status ? null : status;
+  const { error } = await db.from('preguntas').update({ status: newStatus }).eq('id', qId);
+  if (error) { console.error(error); return; }
+  q.status = newStatus;
   render();
 }
 
@@ -272,8 +270,6 @@ async function deleteQuestion() {
   if (error) { document.getElementById('qModalError').textContent = 'Error: ' + error.message; return; }
 
   questions = questions.filter(q => q.id !== currentEditId);
-  delete flags[String(currentEditId)];
-  saveFlags();
   document.getElementById('totalCount').textContent = questions.length;
   closeQModal();
   render();
@@ -419,7 +415,7 @@ function getFiltered() {
     const searchOk = !searchTerm ||
       q.question.toLowerCase().includes(searchTerm) ||
       Object.values(q.options).some(o => o.toLowerCase().includes(searchTerm));
-    const flagOk = !flagFilter || flags[String(q.id)] === flagFilter;
+    const flagOk = !flagFilter || q.status === flagFilter;
     return secOk && searchOk && flagOk;
   });
 }
@@ -430,8 +426,8 @@ function render() {
   document.getElementById('resultCount').innerHTML =
     `Mostrando <span>${filtered.length}</span> de <span>${questions.length}</span> preguntas`;
 
-  const nSegura  = Object.values(flags).filter(v => v === 'segura').length;
-  const nRevisar = Object.values(flags).filter(v => v === 'revisar').length;
+  const nSegura  = questions.filter(q => q.status === 'segura').length;
+  const nRevisar = questions.filter(q => q.status === 'revisar').length;
   document.getElementById('qfAllCount').textContent    = questions.length ? `(${questions.length})` : '';
   document.getElementById('qfSeguraCount').textContent  = nSegura;
   document.getElementById('qfRevisarCount').textContent = nRevisar;
@@ -444,7 +440,7 @@ function render() {
   list.innerHTML = '';
   filtered.forEach((q, fi) => {
     const globalIdx = questions.indexOf(q);
-    const qFlag = flags[String(q.id)] || null;
+    const qFlag = q.status || null;
     const card = document.createElement('div');
     card.className = 'q-card'
       + (mode === 'practice' ? ' practice-mode' : '')
