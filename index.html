@@ -261,12 +261,19 @@ function setFlagFilter(val) {
   render();
 }
 
+function setAuditorUI(active) {
+  auditorMode = active;
+  const btn = document.getElementById('auditorBtn');
+  btn.classList.toggle('active', active);
+  btn.textContent = active ? '🚪 Salir auditor' : '🔑 Auditor';
+  document.getElementById('fabNew').classList.toggle('visible', active);
+  localStorage.setItem('odoo_auditor', active ? '1' : '0');
+}
+
 function toggleAuditor() {
   if (auditorMode) {
     if (!confirm('¿Deseas salir del modo auditor?')) return;
-    auditorMode = false;
-    document.getElementById('auditorBtn').classList.remove('active');
-    document.getElementById('fabNew').classList.remove('visible');
+    setAuditorUI(false);
     render();
     return;
   }
@@ -283,11 +290,10 @@ function closeModal() {
 function checkPass() {
   const val = document.getElementById('auditorPass').value;
   if (val === AUDITOR_PASS) {
-    auditorMode = true;
-    document.getElementById('auditorBtn').classList.add('active');
-    document.getElementById('fabNew').classList.add('visible');
+    setAuditorUI(true);
     closeModal();
     if (mode !== 'study') setMode('study');
+    else render();
     setFlagFilter('revisar');
   } else {
     document.getElementById('modalError').textContent = 'Contraseña incorrecta.';
@@ -424,6 +430,10 @@ async function setCorrectAnswer(questionId, newAnswer) {
   }
 
   q.answer = newAnswer;
+  if (localStorage.getItem('odoo_auditor') === '1') {
+    setAuditorUI(true);
+  }
+
   render();
 }
 
@@ -692,16 +702,14 @@ function render() {
         </div>`;
     });
 
-    if (auditorMode) {
-      card.setAttribute('ondragover',  'onDragOver(event)');
-      card.setAttribute('ondragleave', 'onDragLeave(event)');
-      card.setAttribute('ondrop',      `onDrop(event, ${q.id})`);
-      card.setAttribute('ondragend',   'onDragEnd()');
-    }
+    card.setAttribute('ondragover',  'onDragOver(event)');
+    card.setAttribute('ondragleave', 'onDragLeave(event)');
+    card.setAttribute('ondrop',      `onDrop(event, ${q.id})`);
+    card.setAttribute('ondragend',   'onDragEnd()');
 
     card.innerHTML = `
       <div class="q-header" onclick="toggleCard(this.parentElement)">
-        ${auditorMode ? `<div class="drag-handle" draggable="true" ondragstart="onDragStart(event, ${q.id})" onclick="event.stopPropagation()" title="Arrastrar para reordenar">⠿</div>` : ''}
+        <div class="drag-handle" draggable="true" ondragstart="onDragStart(event, ${q.id})" onclick="event.stopPropagation()" title="Arrastrar para reordenar">⠿</div>
         <div class="q-num">${fi + 1}</div>
         <div class="q-meta">
           <div class="q-section">

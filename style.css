@@ -400,9 +400,12 @@ h1 {
   transition: all 0.15s;
   white-space: nowrap;
 }
-.set-my-btn:hover, .set-my-btn.active {
-  background: rgba(56,189,248,0.2);
+.set-my-btn:hover { background: rgba(56,189,248,0.2); border-color: #38bdf8; }
+.set-my-btn.active {
+  background: #38bdf8;
   border-color: #38bdf8;
+  color: #fff;
+  font-weight: 700;
 }
 
 /* Correct answer */
@@ -836,13 +839,14 @@ h1 {
 .prueba-btn {
   font-size: 10px !important;
   font-weight: 800 !important;
-  opacity: 0.35;
+  opacity: 0.6;
   letter-spacing: 0.3px;
+  color: var(--text) !important;
 }
 .prueba-btn:hover { opacity: 1 !important; }
 .prueba-btn.active { opacity: 1 !important; }
-.prueba-btn.active.p1 { background: rgba(56,189,248,0.2) !important; border-color: #38bdf8 !important; color: #38bdf8 !important; }
-.prueba-btn.active.p2 { background: rgba(251,146,60,0.2)  !important; border-color: #fb923c !important; color: #fb923c !important; }
+.prueba-btn.active.p1 { background: rgba(56,189,248,0.25) !important; border-color: #38bdf8 !important; color: #38bdf8 !important; }
+.prueba-btn.active.p2 { background: rgba(251,146,60,0.25)  !important; border-color: #fb923c !important; color: #fb923c !important; }
 
 /* AUDITOR BUTTON */
 .auditor-btn {
