@@ -661,8 +661,6 @@ h1 {
 .q-modal {
   max-height: 90vh;
   overflow-y: auto;
-  max-width: 680px;
-  width: 95vw;
 }
 .q-modal h3 { margin-bottom: 20px; }
 
@@ -820,6 +818,13 @@ h1 {
   width: 100%;
   max-width: 380px;
   margin: 16px;
+}
+
+/* Modal de preguntas — ancho amplio para mejor visibilidad */
+.modal.q-modal {
+  max-width: min(95vw, 1100px);
+  width: 95vw;
+  padding: 36px 40px;
 }
 .modal h3 {
   font-family: 'Syne', sans-serif;
