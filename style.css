@@ -803,6 +803,17 @@ h1 {
 .edit-btn { opacity: 0.4; }
 .edit-btn:hover { opacity: 1 !important; }
 
+.prueba-btn {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  opacity: 0.35;
+  letter-spacing: 0.3px;
+}
+.prueba-btn:hover { opacity: 1 !important; }
+.prueba-btn.active { opacity: 1 !important; }
+.prueba-btn.active.p1 { background: rgba(56,189,248,0.2) !important; border-color: #38bdf8 !important; color: #38bdf8 !important; }
+.prueba-btn.active.p2 { background: rgba(251,146,60,0.2)  !important; border-color: #fb923c !important; color: #fb923c !important; }
+
 /* AUDITOR BUTTON */
 .auditor-btn {
   padding: 10px 18px;

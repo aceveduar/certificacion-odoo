@@ -228,6 +228,17 @@ async function setMyAnswer(questionId, key, e) {
   render();
 }
 
+async function setPrueba(qId, prueba, e) {
+  e.stopPropagation();
+  const q = questions.find(q => q.id === qId);
+  if (!q) return;
+  const newVal = q.prueba === prueba ? null : prueba;
+  const { error } = await db.from('preguntas').update({ prueba: newVal }).eq('id', qId);
+  if (error) { console.error(error); return; }
+  q.prueba = newVal;
+  render();
+}
+
 async function setFlag(qId, status, e) {
   e.stopPropagation();
   const q = questions.find(q => q.id === qId);
@@ -598,17 +609,19 @@ function render() {
       }
 
       let rightHtml = '';
+      const pruebaLabel = q.prueba ? `<span class="prueba-badge ${q.prueba}">${q.prueba === 'prueba1' ? 'P1' : 'P2'}</span>` : '';
+
       if (auditorMode && mode === 'study') {
         rightHtml = `<div class="opt-actions">
           ${isCorrect
-            ? `<span class="correct-badge">✓ Correcta</span>`
+            ? `<span class="correct-badge">✓ Correcta</span>${pruebaLabel}`
             : `<button class="set-correct-btn" onclick="event.stopPropagation(); setCorrectAnswer(${q.id}, '${key}')">✓ Correcta</button>`}
           <button class="set-my-btn ${q.my_answer === key ? 'active' : ''}" onclick="event.stopPropagation(); setMyAnswer(${q.id}, '${key}', event)">📌 Mi resp.</button>
+          ${q.my_answer === key && pruebaLabel ? pruebaLabel : ''}
         </div>`;
       } else if (mode === 'study') {
         const badges = [];
-        const pruebaLabel = q.prueba ? `<span class="prueba-badge ${q.prueba}">${q.prueba === 'prueba1' ? 'P1' : 'P2'}</span>` : '';
-        if (isCorrect)  {
+        if (isCorrect) {
           badges.push('<span class="correct-badge">✓ Correcta</span>');
           if (pruebaLabel) badges.push(pruebaLabel);
         }
@@ -640,7 +653,11 @@ function render() {
         <div class="flag-btns">
           <button class="flag-btn ${qFlag === 'segura' ? 'active' : ''}" title="Segura" onclick="setFlag(${q.id}, 'segura', event)">✅</button>
           <button class="flag-btn ${qFlag === 'revisar' ? 'active' : ''}" title="A revisar" onclick="setFlag(${q.id}, 'revisar', event)">🔍</button>
-          ${auditorMode ? `<button class="flag-btn edit-btn" title="Editar pregunta" onclick="event.stopPropagation(); openQuestionModal(questions[${globalIdx}])">✏️</button>` : ''}
+          ${auditorMode ? `
+            <button class="flag-btn prueba-btn ${q.prueba === 'prueba1' ? 'active p1' : ''}" title="Prueba 1" onclick="event.stopPropagation(); setPrueba(${q.id}, 'prueba1', event)">P1</button>
+            <button class="flag-btn prueba-btn ${q.prueba === 'prueba2' ? 'active p2' : ''}" title="Prueba 2" onclick="event.stopPropagation(); setPrueba(${q.id}, 'prueba2', event)">P2</button>
+            <button class="flag-btn edit-btn" title="Editar pregunta" onclick="event.stopPropagation(); openQuestionModal(questions[${globalIdx}])">✏️</button>
+          ` : ''}
         </div>
         <div class="q-toggle">+</div>
       </div>
