@@ -502,6 +502,30 @@ h1 {
 .q-card.flag-segura  { border-left: 3px solid var(--green); }
 .q-card.flag-revisar { border-left: 3px solid var(--yellow); }
 
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--surface2);
+  border: 1px solid var(--green);
+  color: var(--green);
+  padding: 12px 24px;
+  border-radius: 100px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px var(--shadow);
+}
+.toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 /* FAB nueva pregunta */
 .fab {
   display: none;

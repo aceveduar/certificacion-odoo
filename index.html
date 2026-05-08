@@ -275,6 +275,46 @@ async function deleteQuestion() {
   render();
 }
 
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('visible'));
+  setTimeout(() => { t.classList.remove('visible'); setTimeout(() => t.remove(), 400); }, 4000);
+}
+
+async function migrateLocalFlags() {
+  const raw = localStorage.getItem('odoo_flags');
+  if (!raw) return 0;
+
+  let localFlags;
+  try { localFlags = JSON.parse(raw); } catch { localStorage.removeItem('odoo_flags'); return 0; }
+
+  const entries = Object.entries(localFlags).filter(([, v]) => v === 'segura' || v === 'revisar');
+  if (!entries.length) { localStorage.removeItem('odoo_flags'); return 0; }
+
+  const seguraIds  = entries.filter(([, v]) => v === 'segura').map(([k]) => parseInt(k));
+  const revisarIds = entries.filter(([, v]) => v === 'revisar').map(([k]) => parseInt(k));
+
+  const ops = [];
+  if (seguraIds.length)  ops.push(db.from('preguntas').update({ status: 'segura'  }).in('id', seguraIds));
+  if (revisarIds.length) ops.push(db.from('preguntas').update({ status: 'revisar' }).in('id', revisarIds));
+
+  const results = await Promise.all(ops);
+  const hasError = results.some(r => r.error);
+  if (hasError) { console.error('Error migrando flags'); return 0; }
+
+  // Actualizar el array local para que render() los muestre ya
+  entries.forEach(([id, status]) => {
+    const q = questions.find(q => q.id === parseInt(id));
+    if (q) q.status = status;
+  });
+
+  localStorage.removeItem('odoo_flags');
+  return entries.length;
+}
+
 async function setCorrectAnswer(questionId, newAnswer) {
   const q = questions.find(q => q.id === questionId);
   if (!q || q.answer === newAnswer) return;
@@ -307,6 +347,9 @@ async function init() {
   }
 
   questions = data;
+
+  const migrated = await migrateLocalFlags();
+  if (migrated > 0) showToast(`✅ ${migrated} marcas sincronizadas con la base de datos.`);
 
   const sections = [...new Set(questions.map(q => q.section))];
   document.getElementById('totalCount').textContent = questions.length;
