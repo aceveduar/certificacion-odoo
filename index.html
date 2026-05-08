@@ -87,6 +87,21 @@
         <label class="radio-opt"><input type="radio" name="qAnswer" value="C"> C</label>
       </div>
 
+      <label class="form-label">Mi respuesta en el examen</label>
+      <div class="answer-radio">
+        <label class="radio-opt"><input type="radio" name="qMyAnswer" value=""> Ninguna</label>
+        <label class="radio-opt my-answer-opt"><input type="radio" name="qMyAnswer" value="A"> A</label>
+        <label class="radio-opt my-answer-opt"><input type="radio" name="qMyAnswer" value="B"> B</label>
+        <label class="radio-opt my-answer-opt"><input type="radio" name="qMyAnswer" value="C"> C</label>
+      </div>
+
+      <label class="form-label">Examen</label>
+      <div class="answer-radio">
+        <label class="radio-opt"><input type="radio" name="qPrueba" value=""> Sin asignar</label>
+        <label class="radio-opt prueba-opt"><input type="radio" name="qPrueba" value="prueba1"> Prueba 1</label>
+        <label class="radio-opt prueba-opt"><input type="radio" name="qPrueba" value="prueba2"> Prueba 2</label>
+      </div>
+
       <div class="modal-actions" style="margin-top:20px">
         <button class="modal-btn delete" id="qDeleteBtn" onclick="deleteQuestion()">🗑 Eliminar</button>
         <button class="modal-btn cancel" onclick="closeQModal()">Cancelar</button>
@@ -114,6 +129,13 @@
     <button class="qf-btn active" id="qfAll"      onclick="setFlagFilter(null)">Todas <span id="qfAllCount"></span></button>
     <button class="qf-btn segura"  id="qfSegura"  onclick="setFlagFilter('segura')">✅ Seguras <span id="qfSeguraCount">0</span></button>
     <button class="qf-btn revisar" id="qfRevisar" onclick="setFlagFilter('revisar')">🔍 A revisar <span id="qfRevisarCount">0</span></button>
+  </div>
+
+  <div class="prueba-filters" id="pruebaFilters">
+    <button class="pf-btn active" id="pfAll" onclick="setPruebaFilter(null)">📋 Todas</button>
+    <button class="pf-btn" id="pfP1" onclick="setPruebaFilter('prueba1')">Prueba 1 <span id="pfP1Count">0</span></button>
+    <button class="pf-btn" id="pfP2" onclick="setPruebaFilter('prueba2')">Prueba 2 <span id="pfP2Count">0</span></button>
+    <button class="pf-btn sin" id="pfSin" onclick="setPruebaFilter('sin')">Sin asignar <span id="pfSinCount">0</span></button>
   </div>
 
   <div class="section-tabs" id="sectionTabs"></div>
@@ -153,7 +175,27 @@ let searchTerm = '';
 let answered = {};
 let revealed = {};
 let auditorMode = false;
-let flagFilter = null;
+let flagFilter   = null;
+let pruebaFilter = null;
+
+function setPruebaFilter(val) {
+  pruebaFilter = val;
+  document.querySelectorAll('.pf-btn').forEach(b => b.classList.remove('active'));
+  const map = { null: 'pfAll', prueba1: 'pfP1', prueba2: 'pfP2', sin: 'pfSin' };
+  document.getElementById(map[val] ?? 'pfAll').classList.add('active');
+  render();
+}
+
+async function setMyAnswer(questionId, key, e) {
+  e.stopPropagation();
+  const q = questions.find(q => q.id === questionId);
+  if (!q) return;
+  const newVal = q.my_answer === key ? null : key;
+  const { error } = await db.from('preguntas').update({ my_answer: newVal }).eq('id', questionId);
+  if (error) { console.error(error); return; }
+  q.my_answer = newVal;
+  render();
+}
 
 async function setFlag(qId, status, e) {
   e.stopPropagation();
@@ -221,6 +263,10 @@ function openQuestionModal(q = null) {
   document.getElementById('qModalError').textContent = '';
   const ans = q ? q.answer : 'A';
   document.querySelector(`input[name="qAnswer"][value="${ans}"]`).checked = true;
+  const myAns = q?.my_answer || '';
+  document.querySelector(`input[name="qMyAnswer"][value="${myAns}"]`).checked = true;
+  const prueba = q?.prueba || '';
+  document.querySelector(`input[name="qPrueba"][value="${prueba}"]`).checked = true;
   document.getElementById('qDeleteBtn').style.display = q ? 'flex' : 'none';
   document.getElementById('qModalOverlay').classList.add('visible');
   setTimeout(() => document.getElementById('qSection').focus(), 100);
@@ -244,7 +290,9 @@ async function saveQuestion() {
     return;
   }
 
-  const payload = { section, question, options: { A: optA, B: optB, C: optC }, answer };
+  const myAnswer = document.querySelector('input[name="qMyAnswer"]:checked')?.value || null;
+  const prueba   = document.querySelector('input[name="qPrueba"]:checked')?.value   || null;
+  const payload  = { section, question, options: { A: optA, B: optB, C: optC }, answer, my_answer: myAnswer || null, prueba: prueba || null };
 
   if (currentEditId) {
     const { error } = await db.from('preguntas').update(payload).eq('id', currentEditId);
@@ -458,8 +506,13 @@ function getFiltered() {
     const searchOk = !searchTerm ||
       q.question.toLowerCase().includes(searchTerm) ||
       Object.values(q.options).some(o => o.toLowerCase().includes(searchTerm));
-    const flagOk = !flagFilter || q.status === flagFilter;
-    return secOk && searchOk && flagOk;
+    const flagOk   = !flagFilter || q.status === flagFilter;
+    const pruebaOk = !pruebaFilter
+      ? true
+      : pruebaFilter === 'sin'
+        ? !q.prueba
+        : q.prueba === pruebaFilter;
+    return secOk && searchOk && flagOk && pruebaOk;
   });
 }
 
@@ -471,9 +524,13 @@ function render() {
 
   const nSegura  = questions.filter(q => q.status === 'segura').length;
   const nRevisar = questions.filter(q => q.status === 'revisar').length;
-  document.getElementById('qfAllCount').textContent    = questions.length ? `(${questions.length})` : '';
+  document.getElementById('qfAllCount').textContent     = questions.length ? `(${questions.length})` : '';
   document.getElementById('qfSeguraCount').textContent  = nSegura;
   document.getElementById('qfRevisarCount').textContent = nRevisar;
+
+  document.getElementById('pfP1Count').textContent  = questions.filter(q => q.prueba === 'prueba1').length;
+  document.getElementById('pfP2Count').textContent  = questions.filter(q => q.prueba === 'prueba2').length;
+  document.getElementById('pfSinCount').textContent = questions.filter(q => !q.prueba).length;
 
   if (filtered.length === 0) {
     list.innerHTML = '<div class="empty"><div class="emoji">🔍</div><p>No se encontraron preguntas.</p></div>';
@@ -496,25 +553,30 @@ function render() {
       const wasAnswered = answered[globalIdx] !== undefined;
       const wasSelected = revealed[globalIdx] === key;
 
+      const isMyAnswer = mode === 'study' && q.my_answer === key && !isCorrect;
+
       let cls = 'option';
-      if (mode === 'study' && isCorrect) cls += ' correct';
+      if (mode === 'study' && isCorrect)   cls += ' correct';
+      if (mode === 'study' && isMyAnswer)  cls += ' my-answer';
       if (auditorMode && mode === 'study') cls += ' auditor-option';
       if (mode === 'practice' && wasAnswered) {
-        if (wasSelected && isCorrect) cls += ' selected-correct';
+        if (wasSelected && isCorrect)  cls += ' selected-correct';
         else if (wasSelected && !isCorrect) cls += ' selected-wrong';
         else if (isCorrect) cls += ' correct';
       }
 
-      const auditorBtn = auditorMode && mode === 'study' && !isCorrect
-        ? `<button class="set-correct-btn" onclick="event.stopPropagation(); setCorrectAnswer(${q.id}, '${key}')">Marcar correcta</button>`
-        : '';
+      const auditorBtns = auditorMode && mode === 'study' ? `
+        ${!isCorrect ? `<button class="set-correct-btn" onclick="event.stopPropagation(); setCorrectAnswer(${q.id}, '${key}')">✓ Correcta</button>` : ''}
+        <button class="set-my-btn ${q.my_answer === key ? 'active' : ''}" onclick="event.stopPropagation(); setMyAnswer(${q.id}, '${key}', event)">📌 Mi resp.</button>
+      ` : '';
 
       optHtml += `
         <div class="${cls}" onclick="selectOption(${globalIdx}, '${key}', this)">
           <div class="opt-letter">${key}</div>
           <div class="opt-text">${q.options[key]}</div>
-          ${mode === 'study' && isCorrect ? '<div class="correct-badge">✓ Correcta</div>' : ''}
-          ${auditorBtn}
+          ${mode === 'study' && isCorrect  ? '<div class="correct-badge">✓ Correcta</div>' : ''}
+          ${mode === 'study' && isMyAnswer ? '<div class="my-answer-badge">📌 Mi resp.</div>' : ''}
+          ${auditorBtns}
         </div>`;
     });
 
@@ -522,7 +584,10 @@ function render() {
       <div class="q-header" onclick="toggleCard(this.parentElement)">
         <div class="q-num">${fi + 1}</div>
         <div class="q-meta">
-          <div class="q-section">${q.section}</div>
+          <div class="q-section">
+            ${q.section}
+            ${q.prueba ? `<span class="prueba-tag ${q.prueba}">${q.prueba === 'prueba1' ? 'Prueba 1' : 'Prueba 2'}</span>` : ''}
+          </div>
           <div class="q-text">${q.question}</div>
         </div>
         <div class="flag-btns">
