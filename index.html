@@ -617,7 +617,7 @@ function render() {
             ? `<span class="correct-badge">✓ Correcta</span>${pruebaLabel}`
             : `<button class="set-correct-btn" onclick="event.stopPropagation(); setCorrectAnswer(${q.id}, '${key}')">✓ Correcta</button>`}
           <button class="set-my-btn ${q.my_answer === key ? 'active' : ''}" onclick="event.stopPropagation(); setMyAnswer(${q.id}, '${key}', event)">📌 Mi resp.</button>
-          ${q.my_answer === key && pruebaLabel ? pruebaLabel : ''}
+          ${q.my_answer === key && !isCorrect && pruebaLabel ? pruebaLabel : ''}
         </div>`;
       } else if (mode === 'study') {
         const badges = [];
