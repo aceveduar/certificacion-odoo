@@ -117,7 +117,7 @@
   <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
     <div class="modal" onclick="event.stopPropagation()">
       <h3>Modo Auditor</h3>
-      <p>Ingresa la contraseña para editar respuestas correctas.</p>
+      <p id="auditorModalMsg">Ingresa la contraseña para acceder al modo auditor.</p>
       <input type="password" id="auditorPass" placeholder="Contraseña" onkeydown="if(event.key==='Enter') checkPass()">
       <div class="modal-actions">
         <button class="modal-btn cancel" onclick="closeModal()">Cancelar</button>
@@ -206,8 +206,9 @@ let activeSection = 'all';
 let searchTerm = '';
 let answered    = {};
 let revealed    = {};
-let expandedIds = new Set();
-let dragSrcId   = null;
+let expandedIds  = new Set();
+let dragSrcId    = null;
+let pendingEditId = null;
 let auditorMode = false;
 let flagFilter   = null;
 let pruebaFilter = null;
@@ -307,6 +308,17 @@ function setAuditorUI(active) {
   localStorage.setItem('odoo_auditor', active ? '1' : '0');
 }
 
+function handleEditClick(qId) {
+  if (auditorMode) {
+    openQuestionModal(questions.find(q => q.id === qId));
+  } else {
+    pendingEditId = qId;
+    document.getElementById('auditorModalMsg').textContent = 'Ingresa la contraseña de auditor para editar esta pregunta.';
+    document.getElementById('modalOverlay').classList.add('visible');
+    setTimeout(() => document.getElementById('auditorPass').focus(), 100);
+  }
+}
+
 function toggleAuditor() {
   if (auditorMode) {
     if (!confirm('¿Deseas salir del modo auditor?')) return;
@@ -322,16 +334,23 @@ function closeModal() {
   document.getElementById('modalOverlay').classList.remove('visible');
   document.getElementById('auditorPass').value = '';
   document.getElementById('modalError').textContent = '';
+  document.getElementById('auditorModalMsg').textContent = 'Ingresa la contraseña para acceder al modo auditor.';
+  pendingEditId = null;
 }
 
 function checkPass() {
   const val = document.getElementById('auditorPass').value;
   if (val === AUDITOR_PASS) {
+    const editId = pendingEditId;
     setAuditorUI(true);
     closeModal();
     if (mode !== 'study') setMode('study');
     else render();
-    setFlagFilter('revisar');
+    if (editId) {
+      openQuestionModal(questions.find(q => q.id === editId));
+    } else {
+      setFlagFilter('revisar');
+    }
   } else {
     document.getElementById('modalError').textContent = 'Contraseña incorrecta.';
   }
@@ -764,8 +783,8 @@ function render() {
           ${auditorMode ? `
             <button class="flag-btn prueba-btn ${q.prueba === 'prueba1' ? 'active p1' : ''}" title="Prueba 1" onclick="event.stopPropagation(); setPrueba(${q.id}, 'prueba1', event)">P1</button>
             <button class="flag-btn prueba-btn ${q.prueba === 'prueba2' ? 'active p2' : ''}" title="Prueba 2" onclick="event.stopPropagation(); setPrueba(${q.id}, 'prueba2', event)">P2</button>
-            <button class="flag-btn edit-btn" title="Editar pregunta" onclick="event.stopPropagation(); openQuestionModal(questions[${globalIdx}])">✏️</button>
           ` : ''}
+          <button class="flag-btn edit-btn" title="Editar pregunta" onclick="event.stopPropagation(); handleEditClick(${q.id})">✏️</button>
         </div>
         <div class="q-toggle">+</div>
       </div>
