@@ -55,6 +55,7 @@
       <button class="mode-btn active" onclick="setMode('study')" id="btnStudy">📖 Estudio</button>
       <button class="mode-btn" onclick="setMode('practice')" id="btnPractice">🎯 Práctica</button>
     </div>
+    <button class="results-btn" id="resultsBtn" onclick="toggleResults()">📊 Resultados</button>
     <button class="auditor-btn" id="auditorBtn" onclick="toggleAuditor()">🔑 Auditor</button>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Cambiar tema"></button>
   </div>
@@ -132,6 +133,20 @@
     <button class="qf-btn revisar" id="qfRevisar" onclick="setFlagFilter('revisar')">🔍 A revisar <span id="qfRevisarCount">0</span></button>
   </div>
 
+  <!-- Panel de resultados del examen -->
+  <div class="results-panel" id="resultsPanel" style="display:none">
+    <div class="results-tabs">
+      <button class="results-tab active" id="rtab1" onclick="switchResultTab(1)">📊 Prueba 1</button>
+      <button class="results-tab"        id="rtab2" onclick="switchResultTab(2)">📊 Prueba 2</button>
+    </div>
+    <div class="results-img-wrap" id="rimg1">
+      <img src="prueba1.jpeg" alt="Resultados Prueba 1">
+    </div>
+    <div class="results-img-wrap" id="rimg2" style="display:none">
+      <img src="prueba2.png" alt="Resultados Prueba 2">
+    </div>
+  </div>
+
   <div class="prueba-filters" id="pruebaFilters">
     <button class="pf-btn active" id="pfAll" onclick="setPruebaFilter(null)">📋 Todas</button>
     <button class="pf-btn" id="pfP1" onclick="setPruebaFilter('prueba1')">Prueba 1 <span id="pfP1Count">0</span></button>
@@ -160,6 +175,21 @@ const AUDITOR_PASS = 'odoo2025';
   document.documentElement.setAttribute('data-theme', saved);
   document.getElementById('themeBtn').textContent = saved === 'dark' ? '☀️' : '🌙';
 })();
+
+function toggleResults() {
+  const panel = document.getElementById('resultsPanel');
+  const btn   = document.getElementById('resultsBtn');
+  const open  = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  btn.classList.toggle('active', open);
+}
+
+function switchResultTab(n) {
+  document.getElementById('rimg1').style.display = n === 1 ? 'block' : 'none';
+  document.getElementById('rimg2').style.display = n === 2 ? 'block' : 'none';
+  document.getElementById('rtab1').classList.toggle('active', n === 1);
+  document.getElementById('rtab2').classList.toggle('active', n === 2);
+}
 
 function toggleTheme() {
   const current = document.documentElement.getAttribute('data-theme');
