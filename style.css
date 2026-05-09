@@ -1271,10 +1271,22 @@ mark {
   .q-text    { font-size: 14px; line-height: 1.55; }
 
   .options-list { gap: 6px; }
-  .option { padding: 11px 12px; gap: 10px; border-radius: 12px; }
-  .opt-letter { width: 26px; height: 26px; font-size: 11px; border-radius: 7px; }
-  .opt-text   { font-size: 13px; line-height: 1.5; }
-  .opt-actions { flex-wrap: wrap; gap: 4px; margin-left: 6px; }
+  .option {
+    padding: 11px 12px; gap: 10px;
+    border-radius: 12px;
+    flex-wrap: wrap;   /* permite que opt-actions baje a segunda fila */
+    align-items: flex-start;
+  }
+  .opt-letter { width: 26px; height: 26px; font-size: 11px; border-radius: 7px; flex-shrink: 0; }
+  .opt-text   { font-size: 13px; line-height: 1.55; flex: 1; min-width: 0; }
+  /* Badges en segunda fila, alineados bajo el texto */
+  .opt-actions {
+    flex-basis: 100%;
+    margin-left: 36px;  /* alineado bajo opt-text */
+    margin-top: 4px;
+    justify-content: flex-start;
+    gap: 6px;
+  }
   .correct-badge, .my-answer-badge { font-size: 10px; padding: 2px 8px; }
   .set-correct-btn, .set-my-btn    { font-size: 10px; padding: 3px 8px; }
 
