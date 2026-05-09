@@ -44,20 +44,24 @@
   </div>
 
   <div class="controls">
-    <div class="search-box">
-      <span class="icon">🔍</span>
-      <input type="text" id="searchInput" placeholder="Buscar pregunta...">
+    <div class="controls-row1">
+      <div class="search-box">
+        <span class="icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Buscar pregunta...">
+      </div>
+      <select class="filter-select" id="sectionFilter">
+        <option value="">Todas las secciones</option>
+      </select>
     </div>
-    <select class="filter-select" id="sectionFilter">
-      <option value="">Todas las secciones</option>
-    </select>
-    <div class="mode-toggle">
-      <button class="mode-btn active" onclick="setMode('study')" id="btnStudy">📖 Estudio</button>
-      <button class="mode-btn" onclick="setMode('practice')" id="btnPractice">🎯 Práctica</button>
+    <div class="controls-row2">
+      <div class="mode-toggle">
+        <button class="mode-btn active" onclick="setMode('study')" id="btnStudy">📖 Estudio</button>
+        <button class="mode-btn" onclick="setMode('practice')" id="btnPractice">🎯 Práctica</button>
+      </div>
+      <button class="results-btn" id="resultsBtn" onclick="toggleResults()">📊 Resultados</button>
+      <button class="auditor-btn" id="auditorBtn" onclick="toggleAuditor()">🔑 Auditor</button>
+      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Cambiar tema"></button>
     </div>
-    <button class="results-btn" id="resultsBtn" onclick="toggleResults()">📊 Resultados</button>
-    <button class="auditor-btn" id="auditorBtn" onclick="toggleAuditor()">🔑 Auditor</button>
-    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Cambiar tema"></button>
   </div>
 
   <!-- Modal editar / crear pregunta -->

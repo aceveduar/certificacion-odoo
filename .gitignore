@@ -1,0 +1,24 @@
+# Excluir todo por defecto
+*
+
+# Incluir solo archivos HTML y CSS
+!*.html
+!*.css
+!*.htm
+
+# Incluir carpetas necesarias (para que Git pueda entrar)
+!*/
+
+# Incluir el .gitignore mismo
+!.gitignore
+
+# Excluir específicamente estos archivos/carpetas que ves en tu lista
+node_modules/
+.claude/
+.git/
+*.xlsx
+*.jpeg
+*.png
+*.js
+package.json
+package-lock.json
