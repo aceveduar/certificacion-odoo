@@ -43,6 +43,7 @@
     <div style="color: var(--muted); margin-top: 8px; font-size: 14px" id="scoreText"></div>
   </div>
 
+  <div class="sticky-bar" id="stickyBar">
   <div class="controls">
     <div class="controls-row1">
       <div class="search-box">
@@ -133,13 +134,6 @@
     </div>
   </div>
 
-  <div class="quick-filters" id="quickFilters">
-    <button class="qf-btn active" id="qfAll"      onclick="setFlagFilter(null)">Todas <span id="qfAllCount"></span></button>
-    <button class="qf-btn segura"  id="qfSegura"  onclick="setFlagFilter('segura')">✅ Seguras <span id="qfSeguraCount">0</span></button>
-    <button class="qf-btn revisar"   id="qfRevisar"   onclick="setFlagFilter('revisar')">🔍 A revisar <span id="qfRevisarCount">0</span></button>
-    <button class="qf-btn ilegible" id="qfIlegible" onclick="setFlagFilter('ilegible')">⚠️ Ilegibles <span id="qfIlegibleCount">0</span></button>
-  </div>
-
   <!-- Panel de resultados del examen -->
   <div class="results-panel" id="resultsPanel" style="display:none">
     <div class="results-tabs">
@@ -158,7 +152,14 @@
     </div>
   </div>
 
+  <div class="quick-filters" id="quickFilters">
+    <button class="qf-btn active" id="qfAll"      onclick="setFlagFilter(null)">Todas <span id="qfAllCount"></span></button>
+    <button class="qf-btn segura"  id="qfSegura"  onclick="setFlagFilter('segura')">✅ Seguras <span id="qfSeguraCount">0</span></button>
+    <button class="qf-btn revisar"   id="qfRevisar"   onclick="setFlagFilter('revisar')">🔍 A revisar <span id="qfRevisarCount">0</span></button>
+    <button class="qf-btn ilegible" id="qfIlegible" onclick="setFlagFilter('ilegible')">⚠️ Ilegibles <span id="qfIlegibleCount">0</span></button>
+  </div>
   <div class="prueba-filters" id="pruebaFilters"></div>
+  </div><!-- /sticky-bar -->
 
   <div class="section-tabs" id="sectionTabs"></div>
   <div class="result-count" id="resultCount"></div>
@@ -166,6 +167,7 @@
 </div>
 
 <button class="fab" id="fabNew" onclick="openQuestionModal()" title="Nueva pregunta">＋</button>
+<button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Volver arriba">↑</button>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -177,10 +179,27 @@ const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 const AUDITOR_PASS = 'odoo2025';
 
 (function initTheme() {
-  const saved = localStorage.getItem('odoo_theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', saved);
-  document.getElementById('themeBtn').textContent = saved === 'dark' ? '☀️' : '🌙';
+  const saved     = localStorage.getItem('odoo_theme');
+  const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  const theme     = saved || preferred;
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeBtn').textContent = theme === 'dark' ? '☀️' : '🌙';
 })();
+
+// Seguir cambios del sistema solo si el usuario no ha elegido manualmente
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+  if (localStorage.getItem('odoo_theme')) return;
+  const theme = e.matches ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeBtn').textContent = theme === 'dark' ? '☀️' : '🌙';
+});
+
+// Scroll listener para botón arriba + sticky shadow
+window.addEventListener('scroll', () => {
+  const y = window.scrollY;
+  document.getElementById('backToTop').classList.toggle('visible', y > 350);
+  document.getElementById('stickyBar').classList.toggle('scrolled', y > 80);
+}, { passive: true });
 
 function toggleResults() {
   const panel = document.getElementById('resultsPanel');
@@ -640,8 +659,10 @@ async function init() {
   tabs.appendChild(allTab);
 
   sections.forEach(s => {
+    const count = questions.filter(q => q.section === s).length;
     const t = document.createElement('button');
-    t.className = 'tab'; t.textContent = s;
+    t.className = 'tab';
+    t.innerHTML = `${s} <span class="tab-count">${count}</span>`;
     t.onclick = () => filterBySection(s, t);
     tabs.appendChild(t);
   });
@@ -870,6 +891,12 @@ function render() {
   });
 }
 
+function highlight(text, term) {
+  if (!term || term.length < 2) return text;
+  const re = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return text.replace(re, '<mark>$1</mark>');
+}
+
 function toggleCard(card) {
   const wasExpanded = card.classList.contains('expanded');
   document.querySelectorAll('.q-card.expanded').forEach(c => {
@@ -879,6 +906,7 @@ function toggleCard(card) {
   if (!wasExpanded) {
     card.classList.add('expanded');
     expandedIds.add(+card.dataset.qid);
+    setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
   }
 }
 
