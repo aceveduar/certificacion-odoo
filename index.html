@@ -52,9 +52,11 @@
       <div class="main-topbar" id="mainTopbar">
         <div class="topbar-left">
           <div class="mode-toggle">
-            <button class="mode-btn active" onclick="setMode('study')" id="btnStudy">📖 Estudio</button>
-            <button class="mode-btn" onclick="setMode('practice')" id="btnPractice">🎯 Práctica</button>
+            <button class="mode-btn active" onclick="setMode('study')"    id="btnStudy">📖 Estudio</button>
+            <button class="mode-btn"        onclick="setMode('practice')" id="btnPractice">🎯 Práctica</button>
+            <button class="mode-btn"        onclick="setMode('exam')"     id="btnExam">🎓 Examen</button>
           </div>
+          <button class="shuffle-btn" id="shuffleBtn" onclick="toggleShuffle()" title="Barajar preguntas" style="display:none">🔀</button>
           <div class="topbar-stats">
             <span class="ts-item"><span class="ts-num" id="totalCount">—</span><span class="ts-lbl">preguntas</span></span>
             <span class="ts-sep">·</span>
@@ -66,6 +68,7 @@
           </div>
         </div>
         <div class="topbar-actions">
+          <button class="progress-btn" id="progressBtn" onclick="openProgress()" title="Mi progreso">📈</button>
           <button class="results-btn" id="resultsBtn" onclick="toggleResults()">📊</button>
           <div class="user-badge" id="userBadge" onclick="showUserMenu()" title="Tu perfil">
             <span class="user-avatar" id="userAvatar">?</span>
@@ -76,6 +79,56 @@
           <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Tema"></button>
         </div>
       </div>
+
+      <!-- EXAM SETUP -->
+      <div class="exam-setup" id="examSetup" style="display:none">
+        <div class="exam-setup-icon">🎓</div>
+        <h3>Simulacro de Examen</h3>
+        <p>90 minutos · preguntas aleatorias · sin ver respuestas hasta el final</p>
+        <div class="exam-setup-row">
+          <label>Examen a simular:</label>
+          <select id="examPruebaSelect" class="form-input" style="max-width:200px">
+            <option value="">Todas las preguntas</option>
+            <option value="prueba1">Prueba 1</option>
+            <option value="prueba2">Prueba 2</option>
+            <option value="prueba3">Prueba 3</option>
+          </select>
+        </div>
+        <div class="exam-setup-count" id="examQCount"></div>
+        <div class="exam-setup-actions">
+          <button class="modal-btn confirm" onclick="startExam()">▶ Comenzar examen</button>
+          <button class="modal-btn cancel"  onclick="setMode('study')">Cancelar</button>
+        </div>
+      </div>
+
+      <!-- EXAM TIMER -->
+      <div class="exam-timer-bar" id="examTimerBar" style="display:none">
+        <div class="timer-info">
+          <span class="timer-icon">⏱</span>
+          <span class="timer-display" id="timerDisplay">90:00</span>
+          <span class="timer-label">restantes</span>
+        </div>
+        <div class="timer-progress-wrap"><div class="timer-progress-fill" id="timerFill"></div></div>
+        <button class="exam-submit-btn" onclick="submitExam()">Entregar examen ✓</button>
+      </div>
+
+      <!-- SECTION STATS (after practice/exam) -->
+      <div class="section-stats-panel" id="sectionStatsPanel" style="display:none">
+        <h4>📊 Rendimiento por sección</h4>
+        <div id="sectionStatsBody"></div>
+      </div>
+
+      <!-- PROGRESS MODAL -->
+      <div class="modal-overlay" id="progressOverlay" onclick="closeProgress()">
+        <div class="modal activity-modal" onclick="event.stopPropagation()">
+          <div class="activity-header">
+            <h3>📈 Mi progreso</h3>
+            <button class="modal-btn cancel" style="flex:0;padding:8px 14px" onclick="closeProgress()">✕</button>
+          </div>
+          <div id="progressList" class="activity-list"></div>
+        </div>
+      </div>
+
 
       <div class="progress-bar" id="progressBar" style="display:none">
         <div class="progress-fill" id="progressFill"></div>
@@ -374,6 +427,182 @@ let revealed    = {};
 let expandedIds  = new Set();
 let dragSrcId    = null;
 let pendingEditId = null;
+
+// ── SHUFFLE ──────────────────────────────────────────
+let shuffleEnabled = false;
+let shuffledIds    = []; // question ids in shuffled order
+
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+
+function toggleShuffle() {
+  shuffleEnabled = !shuffleEnabled;
+  document.getElementById('shuffleBtn').classList.toggle('active', shuffleEnabled);
+  if (shuffleEnabled) shuffledIds = shuffle(questions.map(q => q.id));
+  render();
+}
+
+// ── EXAM ─────────────────────────────────────────────
+let examTimer      = null;
+let examSecsLeft   = 0;
+let examTotalSecs  = 0;
+let examSubmitted  = false;
+let examStartTs    = null;
+
+function updateExamSetupCount() {
+  const prueba = document.getElementById('examPruebaSelect').value;
+  const count  = prueba ? questions.filter(q => q.prueba === prueba).length : questions.length;
+  document.getElementById('examQCount').textContent = `${count} preguntas`;
+}
+
+function startExam() {
+  examSubmitted = false;
+  const prueba  = document.getElementById('examPruebaSelect').value;
+  shuffleEnabled = true;
+  const pool = prueba ? questions.filter(q => q.prueba === prueba) : questions;
+  shuffledIds = shuffle(pool.map(q => q.id));
+  examSecsLeft  = 90 * 60;
+  examTotalSecs = 90 * 60;
+  examStartTs   = Date.now();
+  answered = {}; revealed = {};
+  document.getElementById('examSetup').style.display   = 'none';
+  document.getElementById('examTimerBar').style.display = 'flex';
+  document.getElementById('sectionStatsPanel').style.display = 'none';
+  startTimer();
+  render();
+}
+
+function startTimer() {
+  clearInterval(examTimer);
+  updateTimerDisplay();
+  examTimer = setInterval(() => {
+    examSecsLeft--;
+    updateTimerDisplay();
+    if (examSecsLeft <= 0) { clearInterval(examTimer); submitExam(); }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(examSecsLeft / 60).toString().padStart(2, '0');
+  const s = (examSecsLeft % 60).toString().padStart(2, '0');
+  const el = document.getElementById('timerDisplay');
+  if (el) {
+    el.textContent = `${m}:${s}`;
+    el.classList.toggle('timer-warning', examSecsLeft < 600);
+    el.classList.toggle('timer-danger',  examSecsLeft < 180);
+  }
+  const pct = (examSecsLeft / examTotalSecs) * 100;
+  const fill = document.getElementById('timerFill');
+  if (fill) fill.style.width = pct + '%';
+}
+
+function submitExam() {
+  clearInterval(examTimer);
+  examSubmitted = true;
+  document.getElementById('examTimerBar').style.display = 'none';
+  const duration = Math.round((Date.now() - examStartTs) / 1000);
+  renderSectionStats();
+  saveSession('exam',
+    document.getElementById('examPruebaSelect').value || 'all',
+    duration);
+  render();
+}
+
+// ── SECTION STATS ────────────────────────────────────
+function getSectionStats() {
+  const filtered = getFiltered();
+  const bySection = {};
+  filtered.forEach((q, fi) => {
+    const gi = questions.indexOf(q);
+    if (!bySection[q.section]) bySection[q.section] = { total: 0, correct: 0 };
+    bySection[q.section].total++;
+    if (answered[gi] === true) bySection[q.section].correct++;
+  });
+  return bySection;
+}
+
+function renderSectionStats() {
+  const stats  = getSectionStats();
+  const panel  = document.getElementById('sectionStatsPanel');
+  const body   = document.getElementById('sectionStatsBody');
+  const total  = Object.values(stats).reduce((s,v) => s + v.total, 0);
+  const correct = Object.values(stats).reduce((s,v) => s + v.correct, 0);
+  if (total === 0) { panel.style.display = 'none'; return; }
+
+  const rows = Object.entries(stats)
+    .sort((a, b) => (b[1].correct / b[1].total) - (a[1].correct / a[1].total))
+    .map(([sec, v]) => {
+      const pct = Math.round((v.correct / v.total) * 100);
+      const cls = pct >= 70 ? 'good' : pct >= 50 ? 'ok' : 'bad';
+      return `<div class="ss-row">
+        <span class="ss-section">${sec}</span>
+        <div class="ss-bar-wrap"><div class="ss-bar ${cls}" style="width:${pct}%"></div></div>
+        <span class="ss-score ${cls}">${v.correct}/${v.total}</span>
+        <span class="ss-pct ${cls}">${pct}%</span>
+      </div>`;
+    }).join('');
+
+  body.innerHTML = rows;
+  panel.style.display = 'block';
+}
+
+// ── SAVE SESSION ─────────────────────────────────────
+async function saveSession(sessionMode, prueba, duration) {
+  if (!currentUser) return;
+  const filtered = getFiltered();
+  const total   = filtered.length;
+  const correct = Object.values(answered).filter(Boolean).length;
+  const pct     = total ? Math.round((correct / total) * 100) : 0;
+  const stats   = getSectionStats();
+  const section_scores = Object.fromEntries(
+    Object.entries(stats).map(([k, v]) => [k, { c: v.correct, t: v.total }])
+  );
+  await db.from('practice_sessions').insert({
+    user_name: currentUser, mode: sessionMode,
+    prueba: prueba || null, total_questions: total,
+    correct_answers: correct, score_pct: pct,
+    section_scores, duration_seconds: duration
+  });
+}
+
+async function openProgress() {
+  document.getElementById('progressOverlay').classList.add('visible');
+  const list = document.getElementById('progressList');
+  list.innerHTML = '<div class="empty"><div class="emoji">⏳</div><p>Cargando...</p></div>';
+  const { data, error } = await db.from('practice_sessions')
+    .select('*')
+    .eq('user_name', currentUser || '')
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (!data?.length) {
+    list.innerHTML = '<div class="empty"><div class="emoji">🏁</div><p>Aún no tienes sesiones guardadas.<br>Completa un modo Práctica o Examen.</p></div>';
+    return;
+  }
+  list.innerHTML = data.map(r => {
+    const icon = r.mode === 'exam' ? '🎓' : '🎯';
+    const cls  = r.score_pct >= 70 ? 'good' : r.score_pct >= 50 ? 'ok' : 'bad';
+    const d    = new Date(r.created_at);
+    const date = d.toLocaleDateString('es-MX', { day:'numeric', month:'short', year:'numeric' });
+    const time = d.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+    return `<div class="activity-item">
+      <span class="act-avatar" style="font-size:16px">${icon}</span>
+      <div class="act-body">
+        <div class="act-top">
+          <strong>${r.mode === 'exam' ? 'Examen' : 'Práctica'}</strong>
+          ${r.prueba ? `<span class="prueba-tag ${r.prueba}">${r.prueba.replace('prueba','P')}</span>` : ''}
+          <span class="score-badge ${cls}">${r.score_pct}%</span>
+          <span class="act-time">${date} ${time}</span>
+        </div>
+        <div class="act-detail">${r.correct_answers}/${r.total_questions} correctas · ${Math.round((r.duration_seconds||0)/60)} min</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function closeProgress() {
+  document.getElementById('progressOverlay').classList.remove('visible');
+}
+
+// ── KEYBOARD SHORTCUTS ────────────────────────────────
 let auditorMode = false;
 let flagFilter   = null;
 let pruebaFilter = null;
@@ -836,6 +1065,17 @@ async function init() {
     setAuditorUI(true);
   }
 
+  // Poblar selector de prueba en examen
+  const examSel = document.getElementById('examPruebaSelect');
+  const pruebas = [...new Set(questions.map(q => q.prueba).filter(Boolean))].sort();
+  examSel.innerHTML = '<option value="">Todas las preguntas</option>';
+  pruebas.forEach(p => {
+    const o = document.createElement('option');
+    o.value = p; o.textContent = p.replace('prueba', 'Prueba ');
+    examSel.appendChild(o);
+  });
+  examSel.addEventListener('change', updateExamSetupCount);
+
   render();
 }
 
@@ -856,42 +1096,68 @@ function updateTabs() {
 
 function setMode(m) {
   mode = m;
-  document.getElementById('btnStudy').classList.toggle('active', m === 'study');
-  document.getElementById('btnPractice').classList.toggle('active', m === 'practice');
+  clearInterval(examTimer);
+
+  ['btnStudy','btnPractice','btnExam'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+  const btnMap = { study:'btnStudy', practice:'btnPractice', exam:'btnExam' };
+  const btn = document.getElementById(btnMap[m]);
+  if (btn) btn.classList.add('active');
+
+  const isActive = m === 'practice' || m === 'exam';
+  document.getElementById('shuffleBtn').style.display = isActive ? 'flex' : 'none';
+  document.getElementById('examSetup').style.display    = m === 'exam' ? 'block' : 'none';
+  document.getElementById('examTimerBar').style.display = 'none';
+  document.getElementById('sectionStatsPanel').style.display = 'none';
 
   if (m === 'practice') {
-    answered = {}; revealed = {};
+    answered = {}; revealed = {}; examSubmitted = false;
+    if (shuffleEnabled) shuffledIds = shuffle(questions.map(q => q.id));
     document.getElementById('progressBar').style.display = 'block';
     document.getElementById('scorePanel').classList.remove('visible');
     updateScore();
+  } else if (m === 'exam') {
+    answered = {}; revealed = {}; examSubmitted = false;
+    document.getElementById('progressBar').style.display = 'none';
+    document.getElementById('scorePanel').classList.remove('visible');
+    updateExamSetupCount();
   } else {
+    shuffleEnabled = false;
+    document.getElementById('shuffleBtn').classList.remove('active');
     document.getElementById('progressBar').style.display = 'none';
     document.getElementById('scorePanel').classList.remove('visible');
   }
 
+  expandedIds.clear();
   document.querySelectorAll('.q-card').forEach(c => c.classList.remove('expanded'));
   render();
 }
 
 function updateScore() {
-  const total = questions.length;
-  const ans = Object.keys(answered).length;
+  const filtered = getFiltered();
+  const total = filtered.length;
+  const ans  = Object.keys(answered).length;
   const corr = Object.values(answered).filter(v => v).length;
   document.getElementById('answeredCount').textContent = ans;
-  document.getElementById('correctCount').textContent = corr;
+  document.getElementById('correctCount').textContent  = corr;
 
   if (mode === 'practice') {
     const pct = total ? Math.round(ans / total * 100) : 0;
     document.getElementById('progressFill').style.width = pct + '%';
 
-    if (ans === total) {
+    if (ans >= total && total > 0) {
       const score = Math.round(corr / total * 100);
       const panel = document.getElementById('scorePanel');
-      const big = document.getElementById('scoreBig');
+      const big   = document.getElementById('scoreBig');
       panel.classList.add('visible');
-      big.textContent = score + '%';
-      big.className = 'score-big ' + (score >= 70 ? 'good' : score >= 50 ? 'ok' : 'bad');
-      document.getElementById('scoreText').textContent = `${corr} correctas de ${total} preguntas`;
+      big.textContent  = score + '%';
+      big.className    = 'score-big ' + (score >= 70 ? 'good' : score >= 50 ? 'ok' : 'bad');
+      document.getElementById('scoreText').textContent = `${corr} correctas de ${total} · ${score >= 70 ? '✅ Aprobado' : '❌ Reprueba'}`;
+      renderSectionStats();
+      const duration = Math.round((Date.now() - (examStartTs || Date.now())) / 1000);
+      saveSession('practice', '', duration);
     }
   }
 }
@@ -913,6 +1179,14 @@ function getFiltered() {
       : pruebaFilter === 'con' ? !!q.prueba
       : q.prueba === pruebaFilter;
     return secOk && searchOk && flagOk && pruebaOk;
+  }).sort((a, b) => {
+    if (!shuffleEnabled || shuffledIds.length === 0) return 0;
+    const ai = shuffledIds.indexOf(a.id);
+    const bi = shuffledIds.indexOf(b.id);
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
   });
 }
 
@@ -960,17 +1234,20 @@ function render() {
       const wasAnswered = answered[globalIdx] !== undefined;
       const wasSelected = revealed[globalIdx] === key;
 
-      const isMyAnswer = mode === 'study' && q.my_answer === key;
+      const isMyAnswer   = mode === 'study' && q.my_answer === key;
+      const examRevealed = mode === 'exam' && examSubmitted;
 
       let cls = 'option';
-      if (mode === 'study' && isCorrect)   cls += ' correct';
-      if (mode === 'study' && isMyAnswer)  cls += ' my-answer';
-      if (auditorMode && mode === 'study') cls += ' auditor-option';
-      if (mode === 'practice' && wasAnswered) {
+      if (mode === 'study' && isCorrect)    cls += ' correct';
+      if (mode === 'study' && isMyAnswer)   cls += ' my-answer';
+      if (auditorMode && mode === 'study')  cls += ' auditor-option';
+      if ((mode === 'practice' || examRevealed) && wasAnswered) {
         if (wasSelected && isCorrect)       cls += ' selected-correct';
         else if (wasSelected && !isCorrect) cls += ' selected-wrong';
         else if (isCorrect)                 cls += ' correct';
       }
+      if (mode === 'exam' && !examSubmitted && !wasAnswered) cls += ' exam-option';
+      if (mode === 'exam' && !examSubmitted && wasSelected)  cls += ' exam-selected';
 
       let rightHtml = '';
       const pruebaLabel = q.prueba ? `<span class="prueba-badge ${q.prueba}">${q.prueba === 'prueba1' ? 'P1' : 'P2'}</span>` : '';
@@ -1062,8 +1339,9 @@ function toggleCard(card) {
 }
 
 function selectOption(idx, key, el) {
-  if (mode !== 'practice') return;
-  if (answered[idx] !== undefined) return;
+  if (mode !== 'practice' && !(mode === 'exam' && !examSubmitted)) return;
+  if (answered[idx] !== undefined && mode !== 'exam') return;
+  if (mode === 'exam' && examSubmitted) return;
 
   const q = questions[idx];
   const isCorrect = key === q.answer;
