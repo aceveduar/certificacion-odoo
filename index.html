@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Certificación Funcional Odoo 19</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,37 +15,10 @@
     <p class="subtitle">Banco de preguntas completo · Todas las secciones</p>
   </header>
 
-  <div class="stats">
-    <div class="stat-card">
-      <div class="stat-num" id="totalCount">—</div>
-      <div class="stat-label">Preguntas</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num" id="sectionCount">—</div>
-      <div class="stat-label">Secciones</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num" id="answeredCount">0</div>
-      <div class="stat-label">Respondidas</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-num" id="correctCount" style="color: var(--green)">0</div>
-      <div class="stat-label">Correctas</div>
-    </div>
-  </div>
+  <div class="app-layout">
 
-  <div class="progress-bar" id="progressBar" style="display:none">
-    <div class="progress-fill" id="progressFill"></div>
-  </div>
-
-  <div class="score-panel" id="scorePanel">
-    <div class="score-big" id="scoreBig">0%</div>
-    <div style="color: var(--muted); margin-top: 8px; font-size: 14px" id="scoreText"></div>
-  </div>
-
-  <div class="sticky-bar" id="stickyBar">
-  <div class="controls">
-    <div class="controls-row1">
+    <!-- ── SIDEBAR ──────────────────────────────────── -->
+    <aside class="sidebar">
       <div class="search-box">
         <span class="icon">🔍</span>
         <input type="text" id="searchInput" placeholder="Buscar pregunta...">
@@ -54,17 +27,64 @@
       <select class="filter-select" id="sectionFilter">
         <option value="">Todas las secciones</option>
       </select>
-    </div>
-    <div class="controls-row2">
-      <div class="mode-toggle">
-        <button class="mode-btn active" onclick="setMode('study')" id="btnStudy">📖 Estudio</button>
-        <button class="mode-btn" onclick="setMode('practice')" id="btnPractice">🎯 Práctica</button>
+
+      <div class="sidebar-label">Estado</div>
+      <div class="quick-filters" id="quickFilters">
+        <button class="qf-btn active" id="qfAll"        onclick="setFlagFilter(null)">Todas <span id="qfAllCount"></span></button>
+        <button class="qf-btn sin-rev" id="qfSinRev"   onclick="setFlagFilter('sin-rev')">⏳ Pendientes <span id="qfSinRevCount">0</span></button>
+        <button class="qf-btn segura"  id="qfSegura"   onclick="setFlagFilter('segura')">✅ Confirmadas <span id="qfSeguraCount">0</span></button>
+        <button class="qf-btn revisar" id="qfRevisar"  onclick="setFlagFilter('revisar')">❓ Dudosas <span id="qfRevisarCount">0</span></button>
+        <button class="qf-btn ilegible" id="qfIlegible" onclick="setFlagFilter('ilegible')">✏️ Corregir <span id="qfIlegibleCount">0</span></button>
       </div>
-      <button class="results-btn" id="resultsBtn" onclick="toggleResults()">📊 Resultados</button>
-      <button class="auditor-btn" id="auditorBtn" onclick="toggleAuditor()">🔑 Auditor</button>
-      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Cambiar tema"></button>
-    </div>
-  </div>
+
+      <div class="sidebar-label">Examen</div>
+      <div class="prueba-filters" id="pruebaFilters"></div>
+
+      <div class="sidebar-label">Módulos</div>
+      <div class="section-tabs" id="sectionTabs"></div>
+    </aside>
+
+    <!-- ── MAIN ──────────────────────────────────────── -->
+    <main class="main-content">
+
+      <!-- Topbar: modo + usuario + acciones -->
+      <!-- Topbar sticky con stats inline -->
+      <div class="main-topbar" id="mainTopbar">
+        <div class="topbar-left">
+          <div class="mode-toggle">
+            <button class="mode-btn active" onclick="setMode('study')" id="btnStudy">📖 Estudio</button>
+            <button class="mode-btn" onclick="setMode('practice')" id="btnPractice">🎯 Práctica</button>
+          </div>
+          <div class="topbar-stats">
+            <span class="ts-item"><span class="ts-num" id="totalCount">—</span><span class="ts-lbl">preguntas</span></span>
+            <span class="ts-sep">·</span>
+            <span class="ts-item"><span class="ts-num" id="sectionCount">—</span><span class="ts-lbl">secciones</span></span>
+            <span class="ts-sep">·</span>
+            <span class="ts-item"><span class="ts-num" id="answeredCount" style="color:var(--accent2)">0</span><span class="ts-lbl">resp.</span></span>
+            <span class="ts-sep">·</span>
+            <span class="ts-item"><span class="ts-num" id="correctCount" style="color:var(--green)">0</span><span class="ts-lbl">correctas</span></span>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="results-btn" id="resultsBtn" onclick="toggleResults()">📊</button>
+          <div class="user-badge" id="userBadge" onclick="showUserMenu()" title="Tu perfil">
+            <span class="user-avatar" id="userAvatar">?</span>
+            <span class="user-name"  id="userNameEl">—</span>
+          </div>
+          <button class="activity-btn" id="activityBtn" onclick="openActivity()" title="Historial">🕐</button>
+          <button class="auditor-btn" id="auditorBtn" onclick="toggleAuditor()">🔑</button>
+          <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Tema"></button>
+        </div>
+      </div>
+
+      <div class="progress-bar" id="progressBar" style="display:none">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <div class="score-panel" id="scorePanel">
+        <div class="score-big" id="scoreBig">0%</div>
+        <div style="color: var(--muted); margin-top: 8px; font-size: 14px" id="scoreText"></div>
+      </div>
 
   <!-- Modal editar / crear pregunta -->
   <div class="modal-overlay" id="qModalOverlay">
@@ -120,6 +140,33 @@
     </div>
   </div>
 
+  <!-- Modal login de usuario -->
+  <div class="modal-overlay" id="loginOverlay">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h3>👋 ¿Quién eres?</h3>
+      <p>Ingresa tu nombre para identificar tus cambios y ver el historial de actividad.</p>
+      <input type="text" id="loginName" placeholder="Tu nombre completo..." maxlength="40"
+             onkeydown="if(event.key==='Enter') doLogin()">
+      <div class="modal-actions">
+        <button class="modal-btn confirm" onclick="doLogin()">Entrar</button>
+      </div>
+      <p class="modal-error" id="loginError"></p>
+    </div>
+  </div>
+
+  <!-- Modal actividad -->
+  <div class="modal-overlay" id="activityOverlay" onclick="closeActivity()">
+    <div class="modal activity-modal" onclick="event.stopPropagation()">
+      <div class="activity-header">
+        <h3>📋 Historial de actividad</h3>
+        <button class="modal-btn cancel" style="flex:0;padding:8px 14px" onclick="closeActivity()">✕</button>
+      </div>
+      <div id="activityList" class="activity-list">
+        <div class="empty"><div class="emoji">⏳</div><p>Cargando...</p></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal auditor -->
   <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
     <div class="modal" onclick="event.stopPropagation()">
@@ -152,19 +199,12 @@
     </div>
   </div>
 
-  <div class="quick-filters" id="quickFilters">
-    <button class="qf-btn active" id="qfAll"      onclick="setFlagFilter(null)">Todas <span id="qfAllCount"></span></button>
-    <button class="qf-btn segura"  id="qfSegura"  onclick="setFlagFilter('segura')">✅ Seguras <span id="qfSeguraCount">0</span></button>
-    <button class="qf-btn revisar"   id="qfRevisar"   onclick="setFlagFilter('revisar')">🔍 A revisar <span id="qfRevisarCount">0</span></button>
-    <button class="qf-btn ilegible" id="qfIlegible" onclick="setFlagFilter('ilegible')">⚠️ Ilegibles <span id="qfIlegibleCount">0</span></button>
-  </div>
-  <div class="prueba-filters" id="pruebaFilters"></div>
-  </div><!-- /sticky-bar -->
+      <div class="result-count" id="resultCount"></div>
+      <div class="questions-list" id="questionsList"></div>
 
-  <div class="section-tabs" id="sectionTabs"></div>
-  <div class="result-count" id="resultCount"></div>
-  <div class="questions-list" id="questionsList"></div>
-</div>
+    </main>
+  </div><!-- /app-layout -->
+</div><!-- /container -->
 
 <button class="fab" id="fabNew" onclick="openQuestionModal()" title="Nueva pregunta">＋</button>
 <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Volver arriba">↑</button>
@@ -178,6 +218,98 @@ const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const AUDITOR_PASS = 'odoo2025';
 
+// ─── USUARIO ─────────────────────────────────────────────────────────────────
+let currentUser = localStorage.getItem('odoo_user') || null;
+
+function getInitials(name) {
+  return (name || '?').split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso);
+  if (diff < 60000)    return 'ahora mismo';
+  if (diff < 3600000)  return `hace ${Math.floor(diff/60000)}m`;
+  if (diff < 86400000) return `hace ${Math.floor(diff/3600000)}h`;
+  return new Date(iso).toLocaleDateString('es-MX', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+}
+
+function updateUserUI() {
+  if (!currentUser) return;
+  document.getElementById('userAvatar').textContent = getInitials(currentUser);
+  document.getElementById('userNameEl').textContent = currentUser.split(' ')[0];
+}
+
+function doLogin() {
+  const val = document.getElementById('loginName').value.trim();
+  if (!val) { document.getElementById('loginError').textContent = 'Escribe tu nombre.'; return; }
+  currentUser = val;
+  localStorage.setItem('odoo_user', val);
+  document.getElementById('loginOverlay').classList.remove('visible');
+  updateUserUI();
+}
+
+function showUserMenu() {
+  if (!confirm(`Usuario actual: ${currentUser}\n\n¿Cambiar de usuario?`)) return;
+  localStorage.removeItem('odoo_user');
+  currentUser = null;
+  document.getElementById('userAvatar').textContent = '?';
+  document.getElementById('userNameEl').textContent = '—';
+  document.getElementById('loginName').value = '';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('loginOverlay').classList.add('visible');
+  setTimeout(() => document.getElementById('loginName').focus(), 100);
+}
+
+async function logActivity(questionId, action, details) {
+  if (!currentUser) return;
+  await db.from('activity_log').insert({
+    user_name:   currentUser,
+    question_id: questionId || null,
+    action,
+    details
+  });
+  // Actualizar modified_by en la pregunta
+  if (questionId) {
+    const now = new Date().toISOString();
+    await db.from('preguntas').update({ modified_by: currentUser, modified_at: now }).eq('id', questionId);
+    const q = questions.find(q => q.id === questionId);
+    if (q) { q.modified_by = currentUser; q.modified_at = now; }
+  }
+}
+
+async function openActivity() {
+  document.getElementById('activityOverlay').classList.add('visible');
+  const list = document.getElementById('activityList');
+  list.innerHTML = '<div class="empty"><div class="emoji">⏳</div><p>Cargando...</p></div>';
+  const { data, error } = await db.from('activity_log')
+    .select('*, preguntas(question)')
+    .order('created_at', { ascending: false })
+    .limit(80);
+  if (error || !data?.length) {
+    list.innerHTML = '<div class="empty"><div class="emoji">📭</div><p>Sin actividad registrada.</p></div>';
+    return;
+  }
+  list.innerHTML = data.map(r => `
+    <div class="activity-item">
+      <span class="act-avatar">${getInitials(r.user_name)}</span>
+      <div class="act-body">
+        <div class="act-top">
+          <strong>${r.user_name}</strong>
+          <span class="act-action">${r.action}</span>
+          <span class="act-time">${timeAgo(r.created_at)}</span>
+        </div>
+        ${r.details ? `<div class="act-detail">${r.details}</div>` : ''}
+        ${r.preguntas?.question ? `<div class="act-question">${r.preguntas.question.substring(0,80)}…</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function closeActivity() {
+  document.getElementById('activityOverlay').classList.remove('visible');
+}
+
 (function initTheme() {
   const saved     = localStorage.getItem('odoo_theme');
   const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -185,6 +317,14 @@ const AUDITOR_PASS = 'odoo2025';
   document.documentElement.setAttribute('data-theme', theme);
   document.getElementById('themeBtn').textContent = theme === 'dark' ? '☀️' : '🌙';
 })();
+
+// Mostrar login si no hay usuario guardado
+if (!currentUser) {
+  document.getElementById('loginOverlay').classList.add('visible');
+  setTimeout(() => document.getElementById('loginName').focus(), 300);
+} else {
+  updateUserUI();
+}
 
 // Seguir cambios del sistema solo si el usuario no ha elegido manualmente
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
@@ -198,7 +338,6 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e =
 window.addEventListener('scroll', () => {
   const y = window.scrollY;
   document.getElementById('backToTop').classList.toggle('visible', y > 350);
-  document.getElementById('stickyBar').classList.toggle('scrolled', y > 80);
 }, { passive: true });
 
 function toggleResults() {
@@ -300,6 +439,7 @@ async function setMyAnswer(questionId, key, e) {
   const { error } = await db.from('preguntas').update({ my_answer: newVal }).eq('id', questionId);
   if (error) { console.error(error); return; }
   q.my_answer = newVal;
+  logActivity(questionId, newVal ? `Marcó su respuesta: ${newVal}` : 'Quitó su respuesta', q.question?.substring(0,60));
   render();
 }
 
@@ -360,10 +500,8 @@ async function setFlag(qId, flag, e) {
   const q = questions.find(q => q.id === qId);
   if (!q) return;
   const flags = getQFlags(q);
-  if (flags.has(flag)) {
-    flags.delete(flag);
-  } else {
-    // segura y revisar son mutuamente excluyentes
+  const adding = !flags.has(flag);
+  if (!adding) { flags.delete(flag); } else {
     if (flag === 'segura')  flags.delete('revisar');
     if (flag === 'revisar') flags.delete('segura');
     flags.add(flag);
@@ -372,13 +510,15 @@ async function setFlag(qId, flag, e) {
   const { error } = await db.from('preguntas').update({ status: newStatus }).eq('id', qId);
   if (error) { console.error(error); return; }
   q.status = newStatus;
+  const labels = { segura:'✅ Confirmada', revisar:'❓ Dudosa', ilegible:'✏️ Por corregir' };
+  logActivity(qId, adding ? `Marcó como ${labels[flag]}` : `Quitó ${labels[flag]}`, q.question?.substring(0,60));
   render();
 }
 
 function setFlagFilter(val) {
   flagFilter = val;
   document.querySelectorAll('.qf-btn').forEach(b => b.classList.remove('active'));
-  const map = { null: 'qfAll', segura: 'qfSegura', revisar: 'qfRevisar', ilegible: 'qfIlegible' };
+  const map = { null: 'qfAll', 'sin-rev': 'qfSinRev', segura: 'qfSegura', revisar: 'qfRevisar', ilegible: 'qfIlegible' };
   document.getElementById(map[val] ?? 'qfAll').classList.add('active');
   render();
 }
@@ -498,6 +638,10 @@ async function saveQuestion() {
     document.getElementById('totalCount').textContent = questions.length;
   }
 
+  const savedQ = questions.find(q => q.id === currentEditId);
+  logActivity(currentEditId || (questions.at(-1)?.id),
+    currentEditId ? 'Editó pregunta' : 'Creó nueva pregunta',
+    payload.question?.substring(0,60));
   closeQModal();
   render();
 }
@@ -505,10 +649,10 @@ async function saveQuestion() {
 async function deleteQuestion() {
   if (!currentEditId) return;
   if (!confirm('¿Eliminar esta pregunta? Esta acción no se puede deshacer.')) return;
-
+  const q = questions.find(q => q.id === currentEditId);
   const { error } = await db.from('preguntas').delete().eq('id', currentEditId);
   if (error) { document.getElementById('qModalError').textContent = 'Error: ' + error.message; return; }
-
+  logActivity(null, 'Eliminó pregunta', q?.question?.substring(0,60));
   questions = questions.filter(q => q.id !== currentEditId);
   document.getElementById('totalCount').textContent = questions.length;
   closeQModal();
@@ -570,6 +714,7 @@ async function setCorrectAnswer(questionId, newAnswer) {
   }
 
   q.answer = newAnswer;
+  logActivity(questionId, `Cambió respuesta correcta → ${newAnswer}`, q.question?.substring(0,60));
   render();
 }
 
@@ -757,7 +902,11 @@ function getFiltered() {
     const searchOk = !searchTerm ||
       q.question.toLowerCase().includes(searchTerm) ||
       Object.values(q.options).some(o => o.toLowerCase().includes(searchTerm));
-    const flagOk   = !flagFilter || getQFlags(q).has(flagFilter);
+    const flagOk   = !flagFilter
+      ? true
+      : flagFilter === 'sin-rev'
+        ? getQFlags(q).size === 0
+        : getQFlags(q).has(flagFilter);
     const pruebaOk = !pruebaFilter
       ? true
       : pruebaFilter === 'sin' ? !q.prueba
@@ -775,6 +924,7 @@ function render() {
 
   const hf = f => questions.filter(q => getQFlags(q).has(f)).length;
   document.getElementById('qfAllCount').textContent     = questions.length ? `(${questions.length})` : '';
+  document.getElementById('qfSinRevCount').textContent   = questions.filter(q => getQFlags(q).size === 0).length;
   document.getElementById('qfSeguraCount').textContent   = hf('segura');
   document.getElementById('qfRevisarCount').textContent  = hf('revisar');
   document.getElementById('qfIlegibleCount').textContent = hf('ilegible');
@@ -866,6 +1016,7 @@ function render() {
               ? `<span class="section-label editable" title="Clic para editar sección" onclick="event.stopPropagation(); editSection(${q.id}, this)">${q.section}</span>`
               : q.section}
             ${q.prueba ? `<span class="prueba-tag ${q.prueba}">${q.prueba.replace('prueba','Prueba ')}</span>` : ''}
+            ${q.modified_by ? `<span class="modified-by-badge" title="${q.modified_by} · ${timeAgo(q.modified_at)}">${getInitials(q.modified_by)}</span>` : ''}
           </div>
           <div class="q-text">${q.question}</div>
         </div>
