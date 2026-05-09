@@ -102,6 +102,7 @@
         <label class="radio-opt"><input type="radio" name="qPrueba" value=""> Sin asignar</label>
         <label class="radio-opt prueba-opt"><input type="radio" name="qPrueba" value="prueba1"> Prueba 1</label>
         <label class="radio-opt prueba-opt"><input type="radio" name="qPrueba" value="prueba2"> Prueba 2</label>
+        <label class="radio-opt prueba-opt"><input type="radio" name="qPrueba" value="prueba3"> Prueba 3</label>
       </div>
 
       <div class="modal-actions" style="margin-top:20px">
@@ -139,6 +140,7 @@
     <div class="results-tabs">
       <button class="results-tab active" id="rtab1" onclick="switchResultTab(1)">📊 Prueba 1</button>
       <button class="results-tab"        id="rtab2" onclick="switchResultTab(2)">📊 Prueba 2</button>
+      <button class="results-tab"        id="rtab3" onclick="switchResultTab(3)">📊 Prueba 3</button>
     </div>
     <div class="results-img-wrap" id="rimg1">
       <img src="prueba1.jpeg" alt="Resultados Prueba 1">
@@ -146,14 +148,12 @@
     <div class="results-img-wrap" id="rimg2" style="display:none">
       <img src="prueba2.png" alt="Resultados Prueba 2">
     </div>
+    <div class="results-img-wrap" id="rimg3" style="display:none">
+      <img src="prueba3.png" alt="Resultados Prueba 3">
+    </div>
   </div>
 
-  <div class="prueba-filters" id="pruebaFilters">
-    <button class="pf-btn active" id="pfAll" onclick="setPruebaFilter(null)">📋 Todas</button>
-    <button class="pf-btn" id="pfP1" onclick="setPruebaFilter('prueba1')">Prueba 1 <span id="pfP1Count">0</span></button>
-    <button class="pf-btn" id="pfP2" onclick="setPruebaFilter('prueba2')">Prueba 2 <span id="pfP2Count">0</span></button>
-    <button class="pf-btn sin" id="pfSin" onclick="setPruebaFilter('sin')">Sin asignar <span id="pfSinCount">0</span></button>
-  </div>
+  <div class="prueba-filters" id="pruebaFilters"></div>
 
   <div class="section-tabs" id="sectionTabs"></div>
   <div class="result-count" id="resultCount"></div>
@@ -186,10 +186,12 @@ function toggleResults() {
 }
 
 function switchResultTab(n) {
-  document.getElementById('rimg1').style.display = n === 1 ? 'block' : 'none';
-  document.getElementById('rimg2').style.display = n === 2 ? 'block' : 'none';
-  document.getElementById('rtab1').classList.toggle('active', n === 1);
-  document.getElementById('rtab2').classList.toggle('active', n === 2);
+  [1,2,3].forEach(i => {
+    const img = document.getElementById(`rimg${i}`);
+    const tab = document.getElementById(`rtab${i}`);
+    if (img) img.style.display = i === n ? 'block' : 'none';
+    if (tab) tab.classList.toggle('active', i === n);
+  });
 }
 
 function toggleTheme() {
@@ -216,9 +218,45 @@ let pruebaFilter = null;
 function setPruebaFilter(val) {
   pruebaFilter = val;
   document.querySelectorAll('.pf-btn').forEach(b => b.classList.remove('active'));
-  const map = { null: 'pfAll', prueba1: 'pfP1', prueba2: 'pfP2', sin: 'pfSin' };
-  document.getElementById(map[val] ?? 'pfAll').classList.add('active');
+  const id = val ? `pfBtn_${val}` : 'pfAll';
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
   render();
+}
+
+function buildPruebaFilters() {
+  const pruebas = [...new Set(questions.map(q => q.prueba).filter(Boolean))].sort();
+  const container = document.getElementById('pruebaFilters');
+  container.innerHTML = '';
+
+  const allBtn = document.createElement('button');
+  allBtn.className = 'pf-btn active'; allBtn.id = 'pfAll';
+  allBtn.textContent = '📋 Todas';
+  allBtn.onclick = () => setPruebaFilter(null);
+  container.appendChild(allBtn);
+
+  if (pruebas.length > 1) {
+    const conBtn = document.createElement('button');
+    conBtn.className = 'pf-btn con-prueba'; conBtn.id = 'pfBtn_con';
+    conBtn.innerHTML = `Con prueba <span id="pfCount_con">0</span>`;
+    conBtn.onclick = () => setPruebaFilter('con');
+    container.appendChild(conBtn);
+  }
+
+  pruebas.forEach(p => {
+    const label = p.replace('prueba', 'Prueba ');
+    const btn = document.createElement('button');
+    btn.className = `pf-btn`; btn.id = `pfBtn_${p}`;
+    btn.innerHTML = `${label} <span id="pfCount_${p}">0</span>`;
+    btn.onclick = () => setPruebaFilter(p);
+    container.appendChild(btn);
+  });
+
+  const sinBtn = document.createElement('button');
+  sinBtn.className = 'pf-btn sin'; sinBtn.id = 'pfBtn_sin';
+  sinBtn.innerHTML = 'Sin asignar <span id="pfCount_sin">0</span>';
+  sinBtn.onclick = () => setPruebaFilter('sin');
+  container.appendChild(sinBtn);
 }
 
 async function setMyAnswer(questionId, key, e) {
@@ -486,10 +524,6 @@ async function setCorrectAnswer(questionId, newAnswer) {
   }
 
   q.answer = newAnswer;
-  if (localStorage.getItem('odoo_auditor') === '1') {
-    setAuditorUI(true);
-  }
-
   render();
 }
 
@@ -602,6 +636,12 @@ async function init() {
     dl.appendChild(opt);
   });
 
+  buildPruebaFilters();
+
+  if (localStorage.getItem('odoo_auditor') === '1') {
+    setAuditorUI(true);
+  }
+
   render();
 }
 
@@ -671,9 +711,9 @@ function getFiltered() {
     const flagOk   = !flagFilter || q.status === flagFilter;
     const pruebaOk = !pruebaFilter
       ? true
-      : pruebaFilter === 'sin'
-        ? !q.prueba
-        : q.prueba === pruebaFilter;
+      : pruebaFilter === 'sin' ? !q.prueba
+      : pruebaFilter === 'con' ? !!q.prueba
+      : q.prueba === pruebaFilter;
     return secOk && searchOk && flagOk && pruebaOk;
   });
 }
@@ -691,9 +731,15 @@ function render() {
   document.getElementById('qfRevisarCount').textContent  = nRevisar;
   document.getElementById('qfIlegibleCount').textContent = questions.filter(q => q.status === 'ilegible').length;
 
-  document.getElementById('pfP1Count').textContent  = questions.filter(q => q.prueba === 'prueba1').length;
-  document.getElementById('pfP2Count').textContent  = questions.filter(q => q.prueba === 'prueba2').length;
-  document.getElementById('pfSinCount').textContent = questions.filter(q => !q.prueba).length;
+  const pruebas = [...new Set(questions.map(q => q.prueba).filter(Boolean))];
+  pruebas.forEach(p => {
+    const el = document.getElementById(`pfCount_${p}`);
+    if (el) el.textContent = questions.filter(q => q.prueba === p).length;
+  });
+  const conEl = document.getElementById('pfCount_con');
+  if (conEl) conEl.textContent = questions.filter(q => !!q.prueba).length;
+  const sinEl = document.getElementById('pfCount_sin');
+  if (sinEl) sinEl.textContent = questions.filter(q => !q.prueba).length;
 
   if (filtered.length === 0) {
     list.innerHTML = '<div class="empty"><div class="emoji">🔍</div><p>No se encontraron preguntas.</p></div>';
@@ -772,7 +818,7 @@ function render() {
             ${auditorMode
               ? `<span class="section-label editable" title="Clic para editar sección" onclick="event.stopPropagation(); editSection(${q.id}, this)">${q.section}</span>`
               : q.section}
-            ${q.prueba ? `<span class="prueba-tag ${q.prueba}">${q.prueba === 'prueba1' ? 'Prueba 1' : 'Prueba 2'}</span>` : ''}
+            ${q.prueba ? `<span class="prueba-tag ${q.prueba}">${q.prueba.replace('prueba','Prueba ')}</span>` : ''}
           </div>
           <div class="q-text">${q.question}</div>
         </div>
@@ -780,10 +826,11 @@ function render() {
           <button class="flag-btn ${qFlag === 'segura' ? 'active' : ''}" title="Segura" onclick="setFlag(${q.id}, 'segura', event)">✅</button>
           <button class="flag-btn ${qFlag === 'revisar' ? 'active' : ''}" title="A revisar" onclick="setFlag(${q.id}, 'revisar', event)">🔍</button>
           <button class="flag-btn ilegible-btn ${qFlag === 'ilegible' ? 'active' : ''}" title="${auditorMode ? 'Ilegible' : 'Marcada como ilegible'}" ${auditorMode ? `onclick="setFlag(${q.id}, 'ilegible', event)"` : 'onclick="event.stopPropagation()" style="cursor:default"'}>⚠️</button>
-          ${auditorMode ? `
-            <button class="flag-btn prueba-btn ${q.prueba === 'prueba1' ? 'active p1' : ''}" title="Prueba 1" onclick="event.stopPropagation(); setPrueba(${q.id}, 'prueba1', event)">P1</button>
-            <button class="flag-btn prueba-btn ${q.prueba === 'prueba2' ? 'active p2' : ''}" title="Prueba 2" onclick="event.stopPropagation(); setPrueba(${q.id}, 'prueba2', event)">P2</button>
-          ` : ''}
+          ${auditorMode ? [...new Set(questions.map(r => r.prueba).filter(Boolean))].sort().map((p,i) => {
+              const label = 'P'+(i+1);
+              const cls   = `pcolor-${i+1}`;
+              return `<button class="flag-btn prueba-btn ${q.prueba === p ? `active ${cls}` : ''}" title="${p.replace('prueba','Prueba ')}" onclick="event.stopPropagation(); setPrueba(${q.id}, '${p}', event)">${label}</button>`;
+            }).join('') : ''}
           <button class="flag-btn edit-btn" title="Editar pregunta" onclick="event.stopPropagation(); handleEditClick(${q.id})">✏️</button>
         </div>
         <div class="q-toggle">+</div>
