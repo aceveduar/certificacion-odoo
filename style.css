@@ -210,6 +210,19 @@ h1 {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
+.search-clear {
+  position: absolute; right: 10px; top: 50%;
+  transform: translateY(-50%);
+  width: 20px; height: 20px; border-radius: 50%;
+  border: none; background: var(--border2);
+  color: var(--muted); font-size: 11px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: all var(--transition);
+}
+.search-clear.visible { opacity: 1; pointer-events: auto; }
+.search-clear:hover { background: var(--muted); color: var(--text); }
+.search-box input { padding-right: 36px; }
 .search-box input::placeholder { color: var(--muted); }
 .search-box .icon {
   position: absolute; left: 15px; top: 50%;
@@ -405,6 +418,10 @@ h1 {
 .q-card.flag-segura  { border-left: 3px solid var(--green); }
 .q-card.flag-revisar { border-left: 3px solid var(--yellow); }
 .q-card.flag-ilegible { border-left: 3px solid var(--red); }
+/* Combinaciones de flags — gradiente en el borde */
+.q-card.flag-revisar.flag-ilegible { border-left: 3px solid transparent; border-image: linear-gradient(180deg, var(--yellow), var(--red)) 1; }
+.q-card.flag-segura.flag-revisar   { border-left: 3px solid transparent; border-image: linear-gradient(180deg, var(--green), var(--yellow)) 1; }
+.q-card.flag-segura.flag-ilegible  { border-left: 3px solid transparent; border-image: linear-gradient(180deg, var(--green), var(--red)) 1; }
 
 .q-header {
   display: flex; align-items: flex-start; gap: 14px;
@@ -588,6 +605,13 @@ h1 {
   padding: 3px 10px; border-radius: 100px;
   white-space: nowrap; flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(56,189,248,0.35);
+}
+/* Cuando mi respuesta ES la correcta — badge blanco semitransparente sobre el verde */
+.option.correct .my-answer-badge {
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+  box-shadow: none;
+  border: 1px solid rgba(255,255,255,0.4);
 }
 
 /* Modo práctica */

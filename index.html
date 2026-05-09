@@ -48,6 +48,7 @@
       <div class="search-box">
         <span class="icon">🔍</span>
         <input type="text" id="searchInput" placeholder="Buscar pregunta...">
+        <button class="search-clear" id="searchClear" onclick="clearSearch()" title="Borrar">✕</button>
       </div>
       <select class="filter-select" id="sectionFilter">
         <option value="">Todas las secciones</option>
@@ -219,6 +220,15 @@ let auditorMode = false;
 let flagFilter   = null;
 let pruebaFilter = null;
 
+function clearSearch() {
+  const input = document.getElementById('searchInput');
+  input.value = '';
+  searchTerm = '';
+  document.getElementById('searchClear').classList.remove('visible');
+  input.focus();
+  render();
+}
+
 function setPruebaFilter(val) {
   pruebaFilter = val;
   document.querySelectorAll('.pf-btn').forEach(b => b.classList.remove('active'));
@@ -322,11 +332,24 @@ async function setPrueba(qId, prueba, e) {
   render();
 }
 
-async function setFlag(qId, status, e) {
+function getQFlags(q) {
+  return new Set(q.status ? q.status.split('|') : []);
+}
+
+async function setFlag(qId, flag, e) {
   e.stopPropagation();
   const q = questions.find(q => q.id === qId);
   if (!q) return;
-  const newStatus = q.status === status ? null : status;
+  const flags = getQFlags(q);
+  if (flags.has(flag)) {
+    flags.delete(flag);
+  } else {
+    // segura y revisar son mutuamente excluyentes
+    if (flag === 'segura')  flags.delete('revisar');
+    if (flag === 'revisar') flags.delete('segura');
+    flags.add(flag);
+  }
+  const newStatus = flags.size ? [...flags].join('|') : null;
   const { error } = await db.from('preguntas').update({ status: newStatus }).eq('id', qId);
   if (error) { console.error(error); return; }
   q.status = newStatus;
@@ -625,6 +648,7 @@ async function init() {
 
   document.getElementById('searchInput').addEventListener('input', e => {
     searchTerm = e.target.value.toLowerCase();
+    document.getElementById('searchClear').classList.toggle('visible', !!e.target.value);
     render();
   });
   document.getElementById('sectionFilter').addEventListener('change', e => {
@@ -712,7 +736,7 @@ function getFiltered() {
     const searchOk = !searchTerm ||
       q.question.toLowerCase().includes(searchTerm) ||
       Object.values(q.options).some(o => o.toLowerCase().includes(searchTerm));
-    const flagOk   = !flagFilter || q.status === flagFilter;
+    const flagOk   = !flagFilter || getQFlags(q).has(flagFilter);
     const pruebaOk = !pruebaFilter
       ? true
       : pruebaFilter === 'sin' ? !q.prueba
@@ -728,12 +752,11 @@ function render() {
   document.getElementById('resultCount').innerHTML =
     `Mostrando <span>${filtered.length}</span> de <span>${questions.length}</span> preguntas`;
 
-  const nSegura  = questions.filter(q => q.status === 'segura').length;
-  const nRevisar = questions.filter(q => q.status === 'revisar').length;
+  const hf = f => questions.filter(q => getQFlags(q).has(f)).length;
   document.getElementById('qfAllCount').textContent     = questions.length ? `(${questions.length})` : '';
-  document.getElementById('qfSeguraCount').textContent   = nSegura;
-  document.getElementById('qfRevisarCount').textContent  = nRevisar;
-  document.getElementById('qfIlegibleCount').textContent = questions.filter(q => q.status === 'ilegible').length;
+  document.getElementById('qfSeguraCount').textContent   = hf('segura');
+  document.getElementById('qfRevisarCount').textContent  = hf('revisar');
+  document.getElementById('qfIlegibleCount').textContent = hf('ilegible');
 
   const pruebas = [...new Set(questions.map(q => q.prueba).filter(Boolean))];
   pruebas.forEach(p => {
@@ -753,11 +776,10 @@ function render() {
   list.innerHTML = '';
   filtered.forEach((q, fi) => {
     const globalIdx = questions.indexOf(q);
-    const qFlag = q.status || null;
+    const qFlags = getQFlags(q);
     const card = document.createElement('div');
-    card.className = 'q-card'
-      + (mode === 'practice' ? ' practice-mode' : '')
-      + (qFlag ? ` flag-${qFlag}` : '');
+    const flagCls = [...qFlags].map(f => `flag-${f}`).join(' ');
+    card.className = ['q-card', mode === 'practice' ? 'practice-mode' : '', flagCls].filter(Boolean).join(' ');
     card.dataset.qid = q.id;
 
     const optKeys = Object.keys(q.options);
@@ -767,7 +789,7 @@ function render() {
       const wasAnswered = answered[globalIdx] !== undefined;
       const wasSelected = revealed[globalIdx] === key;
 
-      const isMyAnswer = mode === 'study' && q.my_answer === key && !isCorrect;
+      const isMyAnswer = mode === 'study' && q.my_answer === key;
 
       let cls = 'option';
       if (mode === 'study' && isCorrect)   cls += ' correct';
@@ -827,9 +849,9 @@ function render() {
           <div class="q-text">${q.question}</div>
         </div>
         <div class="flag-btns">
-          <button class="flag-btn ${qFlag === 'segura' ? 'active' : ''}" title="Segura" onclick="setFlag(${q.id}, 'segura', event)">✅</button>
-          <button class="flag-btn ${qFlag === 'revisar' ? 'active' : ''}" title="A revisar" onclick="setFlag(${q.id}, 'revisar', event)">🔍</button>
-          <button class="flag-btn ilegible-btn ${qFlag === 'ilegible' ? 'active' : ''}" title="${auditorMode ? 'Ilegible' : 'Marcada como ilegible'}" ${auditorMode ? `onclick="setFlag(${q.id}, 'ilegible', event)"` : 'onclick="event.stopPropagation()" style="cursor:default"'}>⚠️</button>
+          <button class="flag-btn ${qFlags.has('segura') ? 'active' : ''}" title="Segura" onclick="setFlag(${q.id}, 'segura', event)">✅</button>
+          <button class="flag-btn ${qFlags.has('revisar') ? 'active' : ''}" title="A revisar" onclick="setFlag(${q.id}, 'revisar', event)">🔍</button>
+          <button class="flag-btn ilegible-btn ${qFlags.has('ilegible') ? 'active' : ''}" title="${auditorMode ? 'Ilegible' : 'Marcada como ilegible'}" ${auditorMode ? `onclick="setFlag(${q.id}, 'ilegible', event)"` : 'onclick="event.stopPropagation()" style="cursor:default"'}>⚠️</button>
           ${auditorMode ? [...new Set(questions.map(r => r.prueba).filter(Boolean))].sort().map((p,i) => {
               const label = 'P'+(i+1);
               const cls   = `pcolor-${i+1}`;
