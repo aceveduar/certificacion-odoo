@@ -71,7 +71,7 @@
             <span class="user-avatar" id="userAvatar">?</span>
             <span class="user-name"  id="userNameEl">—</span>
           </div>
-          <button class="activity-btn" id="activityBtn" onclick="openActivity()" title="Historial de actividad" style="display:none">🕐</button>
+          <button class="activity-btn" id="activityBtn" onclick="openActivity()" title="Historial de actividad">🕐</button>
           <button class="auditor-btn" id="auditorBtn" onclick="toggleAuditor()">🔑</button>
           <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Tema"></button>
         </div>
@@ -529,7 +529,6 @@ function setAuditorUI(active) {
   btn.classList.toggle('active', active);
   btn.textContent = active ? '🚪 Salir auditor' : '🔑 Auditor';
   document.getElementById('fabNew').classList.toggle('visible', active);
-  document.getElementById('activityBtn').style.display = active ? 'flex' : 'none';
   localStorage.setItem('odoo_auditor', active ? '1' : '0');
 }
 
