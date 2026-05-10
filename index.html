@@ -489,7 +489,8 @@ let examFlagged    = new Set(); // global indices marcados para revisión
 
 function updateExamSetupCount() {
   const prueba = document.getElementById('examPruebaSelect').value;
-  const count  = prueba ? questions.filter(q => q.prueba === prueba).length : questions.length;
+  const base = prueba ? questions.filter(q => q.prueba === prueba) : questions;
+  const count = base.filter(q => q.answer).length;
   document.getElementById('examQCount').textContent = `${count} preguntas`;
 }
 
@@ -497,7 +498,8 @@ function startExam() {
   examSubmitted = false;
   const prueba  = document.getElementById('examPruebaSelect').value;
   shuffleEnabled = true;
-  const pool = prueba ? questions.filter(q => q.prueba === prueba) : questions;
+  const base = prueba ? questions.filter(q => q.prueba === prueba) : questions;
+  const pool = base.filter(q => q.answer);
   shuffledIds = shuffle(pool.map(q => q.id));
   examSecsLeft  = 90 * 60;
   examTotalSecs = 90 * 60;
