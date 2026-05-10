@@ -37,6 +37,14 @@
         <button class="qf-btn ilegible" id="qfIlegible" onclick="setFlagFilter('ilegible')">✏️ Corregir <span id="qfIlegibleCount">0</span></button>
       </div>
 
+      <div class="sidebar-label">Respuesta</div>
+      <div class="quick-filters" id="answerFilters">
+        <button class="qf-btn active" id="qfAnsAll"       onclick="setAnswerFilter(null)">Todos <span id="qfAnsAllCount"></span></button>
+        <button class="qf-btn correcta" id="qfAnsCorrecta" onclick="setAnswerFilter('has-answer')">✅ Con Correcta <span id="qfAnsCorrectaCount">0</span></button>
+        <button class="qf-btn mi-resp"  id="qfAnsMiResp"  onclick="setAnswerFilter('has-my')">📝 Mi respuesta <span id="qfAnsMiRespCount">0</span></button>
+        <button class="qf-btn sin-resp" id="qfAnsSinResp" onclick="setAnswerFilter('sin-resp')">❌ Sin responder <span id="qfAnsSinRespCount">0</span></button>
+      </div>
+
       <div class="sidebar-label">Examen</div>
       <div class="prueba-filters" id="pruebaFilters"></div>
 
@@ -745,6 +753,7 @@ function closeProgress() {
 // ── KEYBOARD SHORTCUTS ────────────────────────────────
 let auditorMode = false;
 let flagFilter   = null;
+let answerFilter = null;
 let pruebaFilter = null;
 
 function clearSearch() {
@@ -889,6 +898,14 @@ function setFlagFilter(val) {
   document.querySelectorAll('.qf-btn').forEach(b => b.classList.remove('active'));
   const map = { null: 'qfAll', 'sin-rev': 'qfSinRev', segura: 'qfSegura', revisar: 'qfRevisar', ilegible: 'qfIlegible' };
   document.getElementById(map[val] ?? 'qfAll').classList.add('active');
+  render();
+}
+
+function setAnswerFilter(val) {
+  answerFilter = val;
+  document.querySelectorAll('#answerFilters .qf-btn').forEach(b => b.classList.remove('active'));
+  const map = { null: 'qfAnsAll', 'has-answer': 'qfAnsCorrecta', 'has-my': 'qfAnsMiResp', 'sin-resp': 'qfAnsSinResp' };
+  document.getElementById(map[val] ?? 'qfAnsAll').classList.add('active');
   render();
 }
 
@@ -1318,7 +1335,12 @@ function getFiltered() {
       : pruebaFilter === 'sin' ? !q.prueba
       : pruebaFilter === 'con' ? !!q.prueba
       : q.prueba === pruebaFilter;
-    return secOk && searchOk && flagOk && pruebaOk;
+    const answerOk = !answerFilter
+      ? true
+      : answerFilter === 'has-answer' ? !!q.answer
+      : answerFilter === 'has-my'     ? !!q.my_answer
+      : !q.answer && !q.my_answer;
+    return secOk && searchOk && flagOk && pruebaOk && answerOk;
   }).sort((a, b) => {
     if (!shuffleEnabled || shuffledIds.length === 0) return 0;
     const ai = shuffledIds.indexOf(a.id);
@@ -1342,6 +1364,11 @@ function render() {
   document.getElementById('qfSeguraCount').textContent   = hf('segura');
   document.getElementById('qfRevisarCount').textContent  = hf('revisar');
   document.getElementById('qfIlegibleCount').textContent = hf('ilegible');
+
+  document.getElementById('qfAnsAllCount').textContent      = questions.length ? `(${questions.length})` : '';
+  document.getElementById('qfAnsCorrectaCount').textContent = questions.filter(q => !!q.answer).length;
+  document.getElementById('qfAnsMiRespCount').textContent   = questions.filter(q => !!q.my_answer).length;
+  document.getElementById('qfAnsSinRespCount').textContent  = questions.filter(q => !q.answer && !q.my_answer).length;
 
   const pruebas = [...new Set(questions.map(q => q.prueba).filter(Boolean))];
   pruebas.forEach(p => {

@@ -604,6 +604,9 @@ mark {
 .qf-btn.segura.active      { background: rgba(34,211,160,0.15);   border-color: var(--green);   color: var(--green); }
 .qf-btn.revisar.active     { background: rgba(251,191,36,0.12);   border-color: var(--yellow);  color: var(--yellow); }
 .qf-btn.ilegible.active    { background: rgba(248,113,113,0.12);  border-color: var(--red);     color: var(--red); }
+.qf-btn.correcta.active    { background: rgba(34,211,160,0.15);   border-color: var(--green);   color: var(--green); }
+.qf-btn.mi-resp.active     { background: rgba(124,92,252,0.15);    border-color: var(--accent);  color: var(--accent); }
+.qf-btn.sin-resp.active    { background: rgba(248,113,113,0.12);  border-color: var(--red);     color: var(--red); }
 
 .pf-btn.active             { background: var(--accent);                border-color: var(--accent);  color: #fff; box-shadow: 0 2px 12px rgba(124,92,252,0.35); }
 .pf-btn.active span        { background: rgba(255,255,255,0.2); }
