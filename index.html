@@ -108,8 +108,16 @@
           <span class="timer-display" id="timerDisplay">90:00</span>
           <span class="timer-label">restantes</span>
         </div>
+        <span class="exam-progress-info" id="examProgressInfo">0/0 respondidas</span>
         <div class="timer-progress-wrap"><div class="timer-progress-fill" id="timerFill"></div></div>
-        <button class="exam-submit-btn" onclick="submitExam()">Entregar examen ✓</button>
+        <button class="exam-submit-btn" onclick="confirmSubmitExam()">Entregar examen ✓</button>
+      </div>
+
+      <!-- EXAM RESULTS OVERLAY -->
+      <div class="modal-overlay" id="examResultsOverlay" onclick="closeExamResults()">
+        <div class="modal exam-results-modal" onclick="event.stopPropagation()">
+          <div id="examResultsContent"></div>
+        </div>
       </div>
 
       <!-- SECTION STATS (after practice/exam) -->
@@ -335,11 +343,17 @@ async function openActivity() {
   document.getElementById('activityOverlay').classList.add('visible');
   const list = document.getElementById('activityList');
   list.innerHTML = '<div class="empty"><div class="emoji">⏳</div><p>Cargando...</p></div>';
+  console.log('[openActivity] Consultando activity_log...');
   const { data, error } = await db.from('activity_log')
     .select('*, preguntas(question)')
     .order('created_at', { ascending: false })
     .limit(80);
-  if (error || !data?.length) {
+  if (error) {
+    console.error('[openActivity] Error de Supabase:', error);
+    list.innerHTML = `<div class="empty"><div class="emoji">⚠️</div><p>Error al cargar: ${error.message}</p></div>`;
+    return;
+  }
+  if (!data?.length) {
     list.innerHTML = '<div class="empty"><div class="emoji">📭</div><p>Sin actividad registrada.</p></div>';
     return;
   }
@@ -447,6 +461,7 @@ let examSecsLeft   = 0;
 let examTotalSecs  = 0;
 let examSubmitted  = false;
 let examStartTs    = null;
+let examFlagged    = new Set(); // global indices marcados para revisión
 
 function updateExamSetupCount() {
   const prueba = document.getElementById('examPruebaSelect').value;
@@ -463,12 +478,33 @@ function startExam() {
   examSecsLeft  = 90 * 60;
   examTotalSecs = 90 * 60;
   examStartTs   = Date.now();
-  answered = {}; revealed = {};
+  answered = {}; revealed = {}; examFlagged = new Set();
   document.getElementById('examSetup').style.display   = 'none';
   document.getElementById('examTimerBar').style.display = 'flex';
   document.getElementById('sectionStatsPanel').style.display = 'none';
   startTimer();
   render();
+}
+
+function toggleExamFlag(globalIdx) {
+  if (examFlagged.has(globalIdx)) examFlagged.delete(globalIdx);
+  else examFlagged.add(globalIdx);
+  // Actualiza solo el botón sin re-renderizar todo
+  const card = document.querySelector(`.q-card[data-qid="${questions[globalIdx].id}"]`);
+  if (card) {
+    const btn = card.querySelector('.exam-flag-btn');
+    if (btn) btn.classList.toggle('flagged', examFlagged.has(globalIdx));
+  }
+  updateExamProgress();
+}
+
+function updateExamProgress() {
+  const filtered = getFiltered();
+  const total = filtered.length;
+  const respondidas = filtered.filter((q, fi) => answered[questions.indexOf(q)] !== undefined).length;
+  const marcadas = filtered.filter((q) => examFlagged.has(questions.indexOf(q))).length;
+  const el = document.getElementById('examProgressInfo');
+  if (el) el.textContent = `${respondidas}/${total} respondidas${marcadas > 0 ? ` · ${marcadas} marcadas` : ''}`;
 }
 
 function startTimer() {
@@ -495,15 +531,98 @@ function updateTimerDisplay() {
   if (fill) fill.style.width = pct + '%';
 }
 
+function confirmSubmitExam() {
+  const filtered = getFiltered();
+  const total = filtered.length;
+  const respondidas = filtered.filter((q) => answered[questions.indexOf(q)] !== undefined).length;
+  const sinResponder = total - respondidas;
+  const marcadas = filtered.filter((q) => examFlagged.has(questions.indexOf(q))).length;
+
+  let msg = `¿Entregar el examen?`;
+  if (sinResponder > 0) msg += `\n\n⚠️ Tienes ${sinResponder} pregunta${sinResponder > 1 ? 's' : ''} sin responder.`;
+  if (marcadas > 0) msg += `\n🚩 Tienes ${marcadas} marcada${marcadas > 1 ? 's' : ''} para revisión.`;
+
+  if (confirm(msg)) submitExam();
+}
+
 function submitExam() {
   clearInterval(examTimer);
   examSubmitted = true;
   document.getElementById('examTimerBar').style.display = 'none';
   const duration = Math.round((Date.now() - examStartTs) / 1000);
-  renderSectionStats();
   saveSession('exam',
     document.getElementById('examPruebaSelect').value || 'all',
     duration);
+  showExamResults(duration);
+}
+
+function showExamResults(duration) {
+  const filtered = getFiltered();
+  const total = filtered.length;
+  const correct = filtered.filter((q) => answered[questions.indexOf(q)] === true).length;
+  const wrong = filtered.filter((q) => answered[questions.indexOf(q)] === false).length;
+  const skipped = total - correct - wrong;
+  const pct = total ? Math.round((correct / total) * 100) : 0;
+  const passed = pct >= 70;
+  const mins = Math.floor(duration / 60);
+  const secs = duration % 60;
+  const marcadas = filtered.filter((q) => examFlagged.has(questions.indexOf(q))).length;
+
+  const stats = getSectionStats();
+  const sectionRows = Object.entries(stats)
+    .sort((a, b) => (b[1].correct / b[1].total) - (a[1].correct / a[1].total))
+    .map(([sec, v]) => {
+      const p = Math.round((v.correct / v.total) * 100);
+      const cls = p >= 70 ? 'good' : p >= 50 ? 'ok' : 'bad';
+      return `<div class="ss-row">
+        <span class="ss-section">${sec}</span>
+        <div class="ss-bar-wrap"><div class="ss-bar ${cls}" style="width:${p}%"></div></div>
+        <span class="ss-score ${cls}">${v.correct}/${v.total}</span>
+        <span class="ss-pct ${cls}">${p}%</span>
+      </div>`;
+    }).join('');
+
+  document.getElementById('examResultsContent').innerHTML = `
+    <div class="er-header">
+      <div class="er-icon">${passed ? '🏆' : '📋'}</div>
+      <div class="er-score ${passed ? 'good' : pct >= 50 ? 'ok' : 'bad'}">${pct}%</div>
+      <div class="er-verdict ${passed ? 'good' : 'bad'}">${passed ? '✅ Aprobado' : '❌ No aprobado'}</div>
+      <div class="er-subtitle">Puntaje mínimo para aprobar: 70%</div>
+    </div>
+    <div class="er-stats">
+      <div class="er-stat good">
+        <div class="er-stat-num">${correct}</div>
+        <div class="er-stat-label">Correctas</div>
+      </div>
+      <div class="er-stat bad">
+        <div class="er-stat-num">${wrong}</div>
+        <div class="er-stat-label">Incorrectas</div>
+      </div>
+      <div class="er-stat muted">
+        <div class="er-stat-num">${skipped}</div>
+        <div class="er-stat-label">Sin responder</div>
+      </div>
+      ${marcadas > 0 ? `<div class="er-stat flagged">
+        <div class="er-stat-num">${marcadas}</div>
+        <div class="er-stat-label">Marcadas</div>
+      </div>` : ''}
+    </div>
+    <div class="er-time">⏱ Tiempo: ${mins}m ${secs.toString().padStart(2,'0')}s de 90:00</div>
+    <div class="er-sections">
+      <div class="er-sections-title">Rendimiento por sección</div>
+      <div class="er-sections-body">${sectionRows}</div>
+    </div>
+    <div class="er-actions">
+      <button class="modal-btn confirm" onclick="closeExamResults()">Ver respuestas</button>
+      <button class="modal-btn cancel" onclick="closeExamResults(); setMode('study')">Volver al estudio</button>
+    </div>`;
+
+  document.getElementById('examResultsOverlay').classList.add('visible');
+}
+
+function closeExamResults() {
+  document.getElementById('examResultsOverlay').classList.remove('visible');
+  renderSectionStats();
   render();
 }
 
@@ -547,7 +666,10 @@ function renderSectionStats() {
 
 // ── SAVE SESSION ─────────────────────────────────────
 async function saveSession(sessionMode, prueba, duration) {
-  if (!currentUser) return;
+  if (!currentUser) {
+    console.warn('[saveSession] No hay usuario logueado — sesión no guardada.');
+    return;
+  }
   const filtered = getFiltered();
   const total   = filtered.length;
   const correct = Object.values(answered).filter(Boolean).length;
@@ -556,23 +678,41 @@ async function saveSession(sessionMode, prueba, duration) {
   const section_scores = Object.fromEntries(
     Object.entries(stats).map(([k, v]) => [k, { c: v.correct, t: v.total }])
   );
-  await db.from('practice_sessions').insert({
+  console.log('[saveSession] Guardando sesión:', { sessionMode, prueba, total, correct, pct, duration });
+  const { error } = await db.from('practice_sessions').insert({
     user_name: currentUser, mode: sessionMode,
     prueba: prueba || null, total_questions: total,
     correct_answers: correct, score_pct: pct,
     section_scores, duration_seconds: duration
   });
+  if (error) {
+    console.error('[saveSession] Error al guardar en Supabase:', error);
+    showToast(`⚠️ No se pudo guardar la sesión: ${error.message}`);
+  } else {
+    console.log('[saveSession] Sesión guardada correctamente.');
+    showToast('✅ Sesión guardada en tu progreso');
+  }
 }
 
 async function openProgress() {
   document.getElementById('progressOverlay').classList.add('visible');
   const list = document.getElementById('progressList');
   list.innerHTML = '<div class="empty"><div class="emoji">⏳</div><p>Cargando...</p></div>';
+  if (!currentUser) {
+    list.innerHTML = '<div class="empty"><div class="emoji">👤</div><p>Inicia sesión con tu nombre para ver tu progreso.</p></div>';
+    return;
+  }
+  console.log('[openProgress] Consultando sesiones para:', currentUser);
   const { data, error } = await db.from('practice_sessions')
     .select('*')
-    .eq('user_name', currentUser || '')
+    .eq('user_name', currentUser)
     .order('created_at', { ascending: false })
     .limit(20);
+  if (error) {
+    console.error('[openProgress] Error de Supabase:', error);
+    list.innerHTML = `<div class="empty"><div class="emoji">⚠️</div><p>Error al cargar: ${error.message}</p></div>`;
+    return;
+  }
   if (!data?.length) {
     list.innerHTML = '<div class="empty"><div class="emoji">🏁</div><p>Aún no tienes sesiones guardadas.<br>Completa un modo Práctica o Examen.</p></div>';
     return;
@@ -1246,7 +1386,7 @@ function render() {
         else if (wasSelected && !isCorrect) cls += ' selected-wrong';
         else if (isCorrect)                 cls += ' correct';
       }
-      if (mode === 'exam' && !examSubmitted && !wasAnswered) cls += ' exam-option';
+      if (mode === 'exam' && !examSubmitted && !wasSelected) cls += ' exam-option';
       if (mode === 'exam' && !examSubmitted && wasSelected)  cls += ' exam-selected';
 
       let rightHtml = '';
@@ -1307,11 +1447,17 @@ function render() {
               return `<button class="flag-btn prueba-btn ${q.prueba === p ? `active ${cls}` : ''}" title="${p.replace('prueba','Prueba ')}" onclick="event.stopPropagation(); setPrueba(${q.id}, '${p}', event)">${label}</button>`;
             }).join('') : ''}
           <button class="flag-btn edit-btn" title="Editar pregunta" onclick="event.stopPropagation(); handleEditClick(${q.id})">✏️</button>
+          ${mode === 'exam' && !examSubmitted
+            ? `<button class="flag-btn exam-flag-btn ${examFlagged.has(globalIdx) ? 'flagged' : ''}" title="Marcar para revisión" onclick="event.stopPropagation(); toggleExamFlag(${globalIdx})">🚩</button>`
+            : ''}
         </div>
         <div class="q-toggle">+</div>
       </div>
       <div class="q-body">
         <div class="options-list">${optHtml}</div>
+        ${mode === 'exam' && examSubmitted && examFlagged.has(globalIdx)
+          ? '<div class="exam-flagged-badge">🚩 Marcada para revisión</div>'
+          : ''}
       </div>`;
 
     if (expandedIds.has(q.id)) card.classList.add('expanded');
@@ -1352,15 +1498,26 @@ function selectOption(idx, key, el) {
   const optEls = card.querySelectorAll('.option');
   const optKeys = Object.keys(q.options);
 
-  optEls.forEach((opt, i) => {
-    const optKey = optKeys[i];
-    opt.classList.remove('selected-correct', 'selected-wrong', 'correct');
-    if (optKey === key && isCorrect) opt.classList.add('selected-correct');
-    else if (optKey === key && !isCorrect) opt.classList.add('selected-wrong');
-    else if (optKey === q.answer) opt.classList.add('correct');
-  });
-
-  updateScore();
+  if (mode === 'exam') {
+    optEls.forEach((opt, i) => {
+      opt.classList.remove('exam-selected');
+      opt.classList.add('exam-option');
+      if (optKeys[i] === key) {
+        opt.classList.add('exam-selected');
+        opt.classList.remove('exam-option');
+      }
+    });
+    updateExamProgress();
+  } else {
+    optEls.forEach((opt, i) => {
+      const optKey = optKeys[i];
+      opt.classList.remove('selected-correct', 'selected-wrong', 'correct');
+      if (optKey === key && isCorrect) opt.classList.add('selected-correct');
+      else if (optKey === key && !isCorrect) opt.classList.add('selected-wrong');
+      else if (optKey === q.answer) opt.classList.add('correct');
+    });
+    updateScore();
+  }
 }
 
 init();
