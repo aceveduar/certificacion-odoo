@@ -203,6 +203,9 @@ h1 {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 16px;
+  overflow-y: auto;
+  max-height: calc(100vh - 120px);
+  padding-right: 4px;
 }
 .sidebar .filter-select { width: 100%; flex: none; }
 .sidebar .quick-filters,
@@ -212,7 +215,7 @@ h1 {
 .sidebar .section-tabs { flex-direction: column; gap: 4px; }
 .sidebar .tab { border-radius: var(--radius-sm); text-align: left; justify-content: flex-start; }
 
-.sidebar-section { border-bottom: 1px solid var(--border); }
+.sidebar-section { border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .sidebar-section-header {
   display: flex; justify-content: space-between; align-items: center;
   padding: 10px 2px 8px; cursor: pointer; user-select: none;
@@ -222,8 +225,8 @@ h1 {
 .sidebar-section-header:hover { color: var(--text); }
 .ss-toggle { font-size: 10px; transition: transform 0.2s; }
 .sidebar-section.collapsed .ss-toggle { transform: rotate(-90deg); }
-.sidebar-section-body { padding-bottom: 10px; overflow: hidden; transition: max-height 0.25s ease; max-height: 500px; }
-.sidebar-section.collapsed .sidebar-section-body { max-height: 0; padding-bottom: 0; }
+.sidebar-section-body { padding-bottom: 10px; }
+.sidebar-section.collapsed .sidebar-section-body { display: none; }
 
 /* MAIN TOPBAR — sticky dentro del main */
 .main-topbar {
