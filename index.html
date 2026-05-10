@@ -28,28 +28,44 @@
         <option value="">Todas las secciones</option>
       </select>
 
-      <div class="sidebar-label">Estado</div>
-      <div class="quick-filters" id="quickFilters">
-        <button class="qf-btn active" id="qfAll"        onclick="setFlagFilter(null)">Todas <span id="qfAllCount"></span></button>
-        <button class="qf-btn sin-rev" id="qfSinRev"   onclick="setFlagFilter('sin-rev')">⏳ Pendientes <span id="qfSinRevCount">0</span></button>
-        <button class="qf-btn segura"  id="qfSegura"   onclick="setFlagFilter('segura')">✅ Confirmadas <span id="qfSeguraCount">0</span></button>
-        <button class="qf-btn revisar" id="qfRevisar"  onclick="setFlagFilter('revisar')">❓ Dudosas <span id="qfRevisarCount">0</span></button>
-        <button class="qf-btn ilegible" id="qfIlegible" onclick="setFlagFilter('ilegible')">✏️ Corregir <span id="qfIlegibleCount">0</span></button>
+      <div class="sidebar-section">
+        <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">Estado <span class="ss-toggle">▼</span></div>
+        <div class="sidebar-section-body">
+          <div class="quick-filters" id="quickFilters">
+            <button class="qf-btn active" id="qfAll"        onclick="setFlagFilter(null)">Todas <span id="qfAllCount"></span></button>
+            <button class="qf-btn sin-rev" id="qfSinRev"   onclick="setFlagFilter('sin-rev')">⏳ Pendientes <span id="qfSinRevCount">0</span></button>
+            <button class="qf-btn segura"  id="qfSegura"   onclick="setFlagFilter('segura')">✅ Confirmadas <span id="qfSeguraCount">0</span></button>
+            <button class="qf-btn revisar" id="qfRevisar"  onclick="setFlagFilter('revisar')">❓ Dudosas <span id="qfRevisarCount">0</span></button>
+            <button class="qf-btn ilegible" id="qfIlegible" onclick="setFlagFilter('ilegible')">✏️ Corregir <span id="qfIlegibleCount">0</span></button>
+          </div>
+        </div>
       </div>
 
-      <div class="sidebar-label">Respuesta</div>
-      <div class="quick-filters" id="answerFilters">
-        <button class="qf-btn active" id="qfAnsAll"       onclick="setAnswerFilter(null)">Todos <span id="qfAnsAllCount"></span></button>
-        <button class="qf-btn correcta" id="qfAnsCorrecta" onclick="setAnswerFilter('has-answer')">✅ Con Correcta <span id="qfAnsCorrectaCount">0</span></button>
-        <button class="qf-btn mi-resp"  id="qfAnsMiResp"  onclick="setAnswerFilter('has-my')">📝 Mi respuesta <span id="qfAnsMiRespCount">0</span></button>
-        <button class="qf-btn sin-resp" id="qfAnsSinResp" onclick="setAnswerFilter('sin-resp')">❌ Sin responder <span id="qfAnsSinRespCount">0</span></button>
+      <div class="sidebar-section">
+        <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">Respuesta <span class="ss-toggle">▼</span></div>
+        <div class="sidebar-section-body">
+          <div class="quick-filters" id="answerFilters">
+            <button class="qf-btn active" id="qfAnsAll"       onclick="setAnswerFilter(null)">Todos <span id="qfAnsAllCount"></span></button>
+            <button class="qf-btn correcta" id="qfAnsCorrecta" onclick="setAnswerFilter('has-answer')">✅ Con Correcta <span id="qfAnsCorrectaCount">0</span></button>
+            <button class="qf-btn mi-resp"  id="qfAnsMiResp"  onclick="setAnswerFilter('has-my')">📝 Mi respuesta <span id="qfAnsMiRespCount">0</span></button>
+            <button class="qf-btn sin-resp" id="qfAnsSinResp" onclick="setAnswerFilter('sin-resp')">❌ Sin responder <span id="qfAnsSinRespCount">0</span></button>
+          </div>
+        </div>
       </div>
 
-      <div class="sidebar-label">Examen</div>
-      <div class="prueba-filters" id="pruebaFilters"></div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">Examen <span class="ss-toggle">▼</span></div>
+        <div class="sidebar-section-body">
+          <div class="prueba-filters" id="pruebaFilters"></div>
+        </div>
+      </div>
 
-      <div class="sidebar-label">Módulos</div>
-      <div class="section-tabs" id="sectionTabs"></div>
+      <div class="sidebar-section">
+        <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">Módulos <span class="ss-toggle">▼</span></div>
+        <div class="sidebar-section-body">
+          <div class="section-tabs" id="sectionTabs"></div>
+        </div>
+      </div>
     </aside>
 
     <!-- ── MAIN ──────────────────────────────────────── -->
@@ -907,6 +923,10 @@ function setAnswerFilter(val) {
   const map = { null: 'qfAnsAll', 'has-answer': 'qfAnsCorrecta', 'has-my': 'qfAnsMiResp', 'sin-resp': 'qfAnsSinResp' };
   document.getElementById(map[val] ?? 'qfAnsAll').classList.add('active');
   render();
+}
+
+function toggleSidebarSection(headerEl) {
+  headerEl.closest('.sidebar-section').classList.toggle('collapsed');
 }
 
 function setAuditorUI(active) {
