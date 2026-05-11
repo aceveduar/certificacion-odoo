@@ -17,8 +17,3 @@ node_modules/
 .claude/
 .git/
 *.xlsx
-*.jpeg
-*.png
-*.js
-package.json
-package-lock.json
