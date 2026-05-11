@@ -28,7 +28,7 @@
         <option value="">Todas las secciones</option>
       </select>
 
-      <div class="sidebar-section">
+      <div class="sidebar-section auditor-only" id="ssEstado">
         <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">Estado <span class="ss-toggle">▼</span></div>
         <div class="sidebar-section-body">
           <div class="quick-filters" id="quickFilters">
@@ -41,7 +41,7 @@
         </div>
       </div>
 
-      <div class="sidebar-section">
+      <div class="sidebar-section auditor-only" id="ssRespuesta">
         <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">Respuesta <span class="ss-toggle">▼</span></div>
         <div class="sidebar-section-body">
           <div class="quick-filters" id="answerFilters">
@@ -53,14 +53,14 @@
         </div>
       </div>
 
-      <div class="sidebar-section collapsed">
+      <div class="sidebar-section">
         <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">Examen <span class="ss-toggle">▼</span></div>
         <div class="sidebar-section-body">
           <div class="prueba-filters" id="pruebaFilters"></div>
         </div>
       </div>
 
-      <div class="sidebar-section collapsed">
+      <div class="sidebar-section">
         <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">Módulos <span class="ss-toggle">▼</span></div>
         <div class="sidebar-section-body">
           <div class="section-tabs" id="sectionTabs"></div>
@@ -937,6 +937,8 @@ function setAuditorUI(active) {
   btn.classList.toggle('active', active);
   btn.textContent = active ? '🚪 Salir auditor' : '🔑 Auditor';
   document.getElementById('fabNew').classList.toggle('visible', active);
+  document.getElementById('ssEstado').classList.toggle('visible', active);
+  document.getElementById('ssRespuesta').classList.toggle('visible', active);
   localStorage.setItem('odoo_auditor', active ? '1' : '0');
 }
 
@@ -1423,12 +1425,12 @@ function render() {
       const wasAnswered = answered[globalIdx] !== undefined;
       const wasSelected = revealed[globalIdx] === key;
 
-      const isMyAnswer   = mode === 'study' && q.my_answer === key;
+      const isMyAnswer   = auditorMode && mode === 'study' && q.my_answer === key;
       const examRevealed = mode === 'exam' && examSubmitted;
 
       let cls = 'option';
       if (mode === 'study' && isCorrect)    cls += ' correct';
-      if (mode === 'study' && isMyAnswer)   cls += ' my-answer';
+      if (mode === 'study' && isMyAnswer && auditorMode) cls += ' my-answer';
       if (auditorMode && mode === 'study')  cls += ' auditor-option';
       if ((mode === 'practice' || examRevealed) && wasAnswered) {
         if (wasSelected && isCorrect)       cls += ' selected-correct';
@@ -1453,7 +1455,7 @@ function render() {
         if (isCorrect) {
           badges.push('<span class="correct-badge">✓ Correcta</span>');
         }
-        if (isMyAnswer) {
+        if (isMyAnswer && auditorMode) {
           badges.push('<span class="my-answer-badge">📌 Mi resp.</span>');
         }
         if (badges.length) rightHtml = `<div class="opt-actions">${badges.join('')}</div>`;
@@ -1487,15 +1489,17 @@ function render() {
           <div class="q-text">${q.question}</div>
         </div>
         <div class="flag-btns">
+          ${auditorMode ? `
           <button class="flag-btn ${qFlags.has('segura') ? 'active' : ''}" title="Segura" onclick="setFlag(${q.id}, 'segura', event)">✅</button>
           <button class="flag-btn ${qFlags.has('revisar') ? 'active' : ''}" title="A revisar" onclick="setFlag(${q.id}, 'revisar', event)">🔍</button>
-          <button class="flag-btn ilegible-btn ${qFlags.has('ilegible') ? 'active' : ''}" title="${auditorMode ? 'Ilegible' : 'Marcada como ilegible'}" ${auditorMode ? `onclick="setFlag(${q.id}, 'ilegible', event)"` : 'onclick="event.stopPropagation()" style="cursor:default"'}>⚠️</button>
-          ${auditorMode ? [...new Set(questions.map(r => r.prueba).filter(Boolean))].sort().map((p,i) => {
+          <button class="flag-btn ilegible-btn ${qFlags.has('ilegible') ? 'active' : ''}" title="Ilegible" onclick="setFlag(${q.id}, 'ilegible', event)">⚠️</button>
+          ${[...new Set(questions.map(r => r.prueba).filter(Boolean))].sort().map((p,i) => {
               const label = 'P'+(i+1);
               const cls   = `pcolor-${i+1}`;
               return `<button class="flag-btn prueba-btn ${q.prueba === p ? `active ${cls}` : ''}" title="${p.replace('prueba','Prueba ')}" onclick="event.stopPropagation(); setPrueba(${q.id}, '${p}', event)">${label}</button>`;
-            }).join('') : ''}
+            }).join('')}
           <button class="flag-btn edit-btn" title="Editar pregunta" onclick="event.stopPropagation(); handleEditClick(${q.id})">✏️</button>
+          ` : ''}
           ${mode === 'exam' && !examSubmitted
             ? `<button class="flag-btn exam-flag-btn ${examFlagged.has(globalIdx) ? 'flagged' : ''}" title="Marcar para revisión" onclick="event.stopPropagation(); toggleExamFlag(${globalIdx})">🚩</button>`
             : ''}

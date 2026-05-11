@@ -228,6 +228,9 @@ h1 {
 .sidebar-section-body { padding-bottom: 10px; }
 .sidebar-section.collapsed .sidebar-section-body { display: none; }
 
+.auditor-only { display: none; }
+.auditor-only.visible { display: block; }
+
 /* MAIN TOPBAR — sticky dentro del main */
 .main-topbar {
   position: sticky; top: 0; z-index: 20;
