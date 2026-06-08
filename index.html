@@ -11,7 +11,7 @@
 <div class="container">
   <header>
     <div class="badge" id="modeBadge">📖 Modo Estudio</div>
-    <h1>Certificación Funcional<br>Odoo 19</h1>
+    <h1>Certificación Funcional Odoo 19</h1>
     <p class="subtitle">Banco de preguntas completo · Todas las secciones</p>
   </header>
 
@@ -63,7 +63,7 @@
         </div>
       </div>
 
-      <div class="sidebar-section">
+      <div class="sidebar-section" id="ssModulos">
         <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">Módulos <span class="ss-toggle">▼</span></div>
         <div class="sidebar-section-body">
           <div class="section-tabs" id="sectionTabs"></div>
@@ -99,23 +99,28 @@
           </div>
         </div>
         <div class="topbar-actions">
-          <button class="progress-btn" id="progressBtn" onclick="openProgress()" title="Mi progreso">📈</button>
-          <div class="auditor-tools" id="auditorTools">
-            <button class="auditor-tools-btn" id="auditorToolsBtn" onclick="toggleAuditorTools(event)" title="Herramientas de auditor">🛠️</button>
-            <div class="auditor-tools-menu" id="auditorToolsMenu">
-              <button class="auditor-menu-item" id="userStatsBtn" onclick="openUserStats(); closeAuditorTools()">🏆 Resultados por persona</button>
-              <button class="auditor-menu-item" id="resultsBtn" onclick="toggleResults(); closeAuditorTools()">📊 Resultados</button>
-              <button class="auditor-menu-item" id="activityBtn" onclick="openActivity(); closeAuditorTools()">🕐 Historial de actividad</button>
-              <button class="auditor-menu-item" id="examConfigBtn" onclick="openExamConfigModal(); closeAuditorTools()">⚙️ Exámenes por módulo</button>
-              <button class="auditor-menu-item" id="importBtn" onclick="openImportModal(); closeAuditorTools()">📥 Importar preguntas</button>
+          <div class="topbar-group topbar-group-identity">
+            <div class="user-badge" id="userBadge" onclick="showUserMenu()" title="Tu perfil">
+              <span class="user-avatar" id="userAvatar">?</span>
+              <span class="user-name"  id="userNameEl">—</span>
             </div>
+            <button class="auditor-btn" id="auditorBtn" onclick="toggleAuditor()">🔑</button>
           </div>
-          <div class="user-badge" id="userBadge" onclick="showUserMenu()" title="Tu perfil">
-            <span class="user-avatar" id="userAvatar">?</span>
-            <span class="user-name"  id="userNameEl">—</span>
+          <div class="topbar-group-divider"></div>
+          <div class="topbar-group topbar-group-tools">
+            <button class="progress-btn" id="progressBtn" onclick="openProgress()" title="Mi progreso">📈</button>
+            <div class="auditor-tools" id="auditorTools">
+              <button class="auditor-tools-btn" id="auditorToolsBtn" onclick="toggleAuditorTools(event)" title="Herramientas de auditor">🛠️</button>
+              <div class="auditor-tools-menu" id="auditorToolsMenu">
+                <button class="auditor-menu-item" id="userStatsBtn" onclick="openUserStats(); closeAuditorTools()">🏆 Resultados por persona</button>
+                <button class="auditor-menu-item" id="resultsBtn" onclick="toggleResults(); closeAuditorTools()">📊 Resultados</button>
+                <button class="auditor-menu-item" id="activityBtn" onclick="openActivity(); closeAuditorTools()">🕐 Historial de actividad</button>
+                <button class="auditor-menu-item" id="examConfigBtn" onclick="openExamConfigModal(); closeAuditorTools()">⚙️ Exámenes por módulo</button>
+                <button class="auditor-menu-item" id="importBtn" onclick="openImportModal(); closeAuditorTools()">📥 Importar preguntas</button>
+              </div>
+            </div>
+            <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Tema"></button>
           </div>
-          <button class="auditor-btn" id="auditorBtn" onclick="toggleAuditor()">🔑</button>
-          <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Tema"></button>
         </div>
       </div>
 

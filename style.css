@@ -63,7 +63,7 @@
 ═══════════════════════════════════════════════════════════════════════════ */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 
 body {
   background: var(--bg);
@@ -270,6 +270,14 @@ h1 {
 }
 .topbar-actions {
   display: flex; gap: 6px; align-items: center; flex-shrink: 0;
+}
+/* Agrupa identidad (avatar+nombre / auditor) y herramientas (progreso,
+   menú de auditor, tema) en bloques separados por un divisor — antes
+   eran 5 controles de formas distintas compitiendo en una sola fila. */
+.topbar-group { display: flex; align-items: center; gap: 6px; }
+.topbar-group-divider {
+  width: 1px; align-self: stretch; margin: 4px 2px;
+  background: var(--border);
 }
 /* Stats inline en topbar */
 .topbar-stats {
@@ -1475,10 +1483,10 @@ body.exam-setup-browse .topbar-stats { display: none; }
   background: linear-gradient(135deg, var(--accent), #6340e0);
   color: #fff; font-size: 28px; border: none; cursor: pointer;
   box-shadow: 0 4px 24px rgba(124,92,252,0.5);
-  z-index: 50; transition: all var(--transition);
+  z-index: 50; transition: all var(--transition), opacity var(--transition);
 }
 .fab.visible { display: flex; align-items: center; justify-content: center; }
-.fab:hover   { transform: scale(1.08) rotate(10deg); box-shadow: 0 6px 32px rgba(124,92,252,0.65); }
+.fab:hover   { transform: scale(1.08) rotate(10deg); box-shadow: 0 6px 32px rgba(124,92,252,0.65); opacity: 1; }
 body:has(.modal-overlay.visible) .fab { display: none; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1659,6 +1667,16 @@ body:has(.modal-overlay.visible) .fab { display: none; }
   .stat-num  { font-size: 26px; }
   .stat-label { font-size: 9px; }
 
+  /* .mode-btn usa white-space:nowrap y .mode-toggle no encogía ni
+     envolvía sus 3 botones — en pantallas angostas su ancho mínimo
+     superaba el viewport y forzaba scroll horizontal de toda la página. */
+  .mode-toggle {
+    max-width: 100%; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .mode-toggle::-webkit-scrollbar { display: none; }
+  .mode-btn { padding: 7px 12px; font-size: 12px; flex-shrink: 0; }
+
   .sticky-bar { padding: 10px 0 4px; margin: -10px 0 0; }
   .controls { gap: 8px; margin-bottom: 12px; }
   .controls-row1 { flex-direction: column; gap: 8px; }
@@ -1672,6 +1690,20 @@ body:has(.modal-overlay.visible) .fab { display: none; }
   }
   .auditor-btn   { font-size: 12px; padding: 9px 12px; }
   .theme-btn     { width: 36px; height: 36px; }
+
+  /* "Exámenes por módulo": el intro (texto + botones) y cada fila
+     (toggle + duración) son filas flex con justify-content:space-between
+     que no encogían — en pantallas angostas forzaban overflow horizontal
+     del modal. Se apilan verticalmente. */
+  .exam-config-intro {
+    flex-direction: column; align-items: stretch; gap: 10px;
+  }
+  .exam-config-bulk-actions { justify-content: flex-end; }
+  .exam-config-row, .exam-config-row-full {
+    flex-direction: column; align-items: stretch; gap: 8px;
+  }
+  .exam-config-toggle span { white-space: normal; }
+  .exam-config-duration { justify-content: flex-end; }
 
   .quick-filters, .prueba-filters { gap: 5px; margin-bottom: 10px; }
   .qf-btn, .pf-btn { font-size: 11px; padding: 5px 10px; }
@@ -1759,7 +1791,11 @@ body:has(.modal-overlay.visible) .fab { display: none; }
   .modal h3 { font-size: 18px; }
   .modal.q-modal { padding: 24px 20px; }
 
-  .fab  { bottom: 20px; right: 16px; width: 50px; height: 50px; font-size: 24px; }
+  /* En mobile el FAB queda fijo sobre las tarjetas al hacer scroll;
+     se atenúa para que no "tape" visualmente las banderas/badges
+     que terminan debajo, y recupera opacidad completa al tocarlo. */
+  .fab  { bottom: 20px; right: 16px; width: 50px; height: 50px; font-size: 24px; opacity: 0.8; }
+  .fab:active { opacity: 1; }
   .toast { font-size: 12px; padding: 10px 18px; max-width: calc(100vw - 32px); white-space: normal; text-align: center; }
   .result-count { font-size: 12px; }
 }

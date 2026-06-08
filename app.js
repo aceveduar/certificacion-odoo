@@ -1417,6 +1417,14 @@ async function onDrop(e, targetQId) {
 async function init() {
   questionsList.innerHTML = '<div class="empty"><div class="emoji">⏳</div><p>Cargando preguntas...</p></div>';
 
+  // En pantallas angostas la barra lateral se apila arriba del contenido;
+  // arrancan comprimidas para no empujar las preguntas hacia abajo.
+  if (window.innerWidth < 900) {
+    ['ssEstado', 'ssRespuesta', 'ssExamen', 'ssModulos'].forEach(id => {
+      document.getElementById(id)?.classList.add('collapsed');
+    });
+  }
+
   const { data, error } = await db
     .from('preguntas')
     .select('*')
