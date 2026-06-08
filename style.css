@@ -861,7 +861,7 @@ body.exam-setup-browse .topbar-stats { display: none; }
 
 .prueba-btn {
   font-size: 9px !important; font-weight: 800 !important;
-  opacity: 0.5; letter-spacing: 0.3px;
+  color: var(--text2); opacity: 0.7; letter-spacing: 0.3px;
 }
 .prueba-btn:hover { opacity: 1 !important; }
 .prueba-btn.active { opacity: 1 !important; }
@@ -1202,6 +1202,63 @@ body.exam-setup-browse .topbar-stats { display: none; }
 }
 .exam-config-bulk-actions button:hover { background: rgba(192,132,252,0.12); }
 
+.import-steps {
+  list-style: none; counter-reset: import-step;
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 16px;
+}
+.import-steps li {
+  counter-increment: import-step;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  font-size: 14px; color: var(--text2); line-height: 1.5;
+  padding-left: 32px; position: relative;
+}
+.import-steps li::before {
+  content: counter(import-step);
+  position: absolute; left: 0; top: 1px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent-glow); color: var(--accent2);
+  font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.import-template-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent);
+  background: var(--accent-glow);
+  color: var(--accent2);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+  transition: all var(--transition);
+}
+.import-template-btn:hover { background: rgba(124,92,252,0.22); transform: translateY(-1px); }
+
+.import-textarea {
+  font-family: 'Menlo', 'Consolas', monospace;
+  font-size: 12px; line-height: 1.5;
+  resize: vertical; min-height: 120px;
+}
+.import-preview { margin-top: 12px; }
+.import-summary {
+  display: flex; gap: 14px; align-items: center;
+  font-size: 13px; font-weight: 600;
+}
+.import-ok  { color: var(--green); }
+.import-bad { color: var(--red); }
+.import-errors {
+  list-style: none; margin-top: 8px;
+  max-height: 160px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.import-errors li {
+  font-size: 12px; color: var(--muted);
+  padding: 6px 10px; border-radius: var(--radius-sm);
+  background: rgba(248,113,113,0.08);
+  border: 1px solid rgba(248,113,113,0.2);
+}
+
 .exam-config-divider { height: 1px; background: var(--border); margin: 10px 0; }
 .exam-config-row { align-items: center; justify-content: space-between; }
 .exam-config-row-full .exam-config-toggle span { color: var(--accent2); font-weight: 700; }
@@ -1411,6 +1468,7 @@ body.exam-setup-browse .topbar-stats { display: none; }
 }
 .fab.visible { display: flex; align-items: center; justify-content: center; }
 .fab:hover   { transform: scale(1.08) rotate(10deg); box-shadow: 0 6px 32px rgba(124,92,252,0.65); }
+body:has(.modal-overlay.visible) .fab { display: none; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MODALS

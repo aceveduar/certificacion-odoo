@@ -106,6 +106,7 @@
               <button class="auditor-menu-item" id="resultsBtn" onclick="toggleResults(); closeAuditorTools()">📊 Resultados</button>
               <button class="auditor-menu-item" id="activityBtn" onclick="openActivity(); closeAuditorTools()">🕐 Historial de actividad</button>
               <button class="auditor-menu-item" id="examConfigBtn" onclick="openExamConfigModal(); closeAuditorTools()">⚙️ Exámenes por módulo</button>
+              <button class="auditor-menu-item" id="importBtn" onclick="openImportModal(); closeAuditorTools()">📥 Importar preguntas</button>
             </div>
           </div>
           <div class="user-badge" id="userBadge" onclick="showUserMenu()" title="Tu perfil">
@@ -303,6 +304,32 @@
         </div>
       </div>
       <div id="examConfigList" class="activity-list"></div>
+    </div>
+  </div>
+
+  <!-- Importar preguntas (auditor) -->
+  <div class="modal-overlay" id="importOverlay" onclick="closeImportModal()">
+    <div class="modal activity-modal" onclick="event.stopPropagation()">
+      <div class="activity-header">
+        <h3>📥 Importar preguntas</h3>
+        <button class="modal-btn cancel" style="flex:0;padding:8px 14px" onclick="closeImportModal()">✕</button>
+      </div>
+      <ol class="import-steps">
+        <li>
+          Descarga la plantilla y llénala en Excel/Sheets — una pregunta por fila, sin tocar el orden de las columnas.
+          <button class="import-template-btn" onclick="downloadQuestionTemplate()">⬇️ Descargar plantilla (.csv)</button>
+        </li>
+        <li>Selecciona y copia las filas con datos (sin la fila de encabezados).</li>
+        <li>Pégalas abajo, revisa la vista previa y confirma.</li>
+      </ol>
+      <textarea id="importTextarea" class="form-textarea import-textarea" rows="6"
+        placeholder="Pega aquí las filas copiadas de tu hoja de cálculo (una pregunta por línea)…"
+        oninput="previewImport()"></textarea>
+      <div id="importPreview" class="import-preview"></div>
+      <div class="modal-actions" style="margin-top:14px">
+        <button class="modal-btn cancel" onclick="closeImportModal()">Cancelar</button>
+        <button class="modal-btn confirm" id="importConfirmBtn" onclick="runImport()" disabled>Importar</button>
+      </div>
     </div>
   </div>
 

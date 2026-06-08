@@ -365,6 +365,125 @@ function closeExamConfigModal() {
   document.getElementById('examConfigOverlay').classList.remove('visible');
 }
 
+// ── IMPORTAR PREGUNTAS DESDE PLANTILLA (auditor) ──────
+// Columnas esperadas, en este orden (separadas por tabulación al pegar
+// desde Excel/Sheets — así se evita lidiar con comillas/comas internas):
+// seccion | prueba | pregunta | opcion_a | opcion_b | opcion_c | respuesta_correcta | mi_respuesta | estado
+const IMPORT_TEMPLATE_HEADERS = ['seccion','prueba','pregunta','opcion_a','opcion_b','opcion_c','respuesta_correcta','mi_respuesta','estado'];
+const IMPORT_TEMPLATE_EXAMPLE = ['CRM','prueba5','¿Cuál es un ejemplo de pregunta?','Texto de la opción A','Texto de la opción B','Texto de la opción C','A','B','revisar'];
+const IMPORT_VALID_LETTERS = ['A','B','C'];
+const IMPORT_VALID_STATUSES = ['segura','revisar','ilegible'];
+
+let importParsedRows = [];
+
+function downloadQuestionTemplate() {
+  const csv = '\uFEFF' + IMPORT_TEMPLATE_HEADERS.join(',') + '\n'
+    + IMPORT_TEMPLATE_EXAMPLE.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',') + '\n';
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'plantilla_preguntas.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function openImportModal() {
+  document.getElementById('importTextarea').value = '';
+  document.getElementById('importPreview').innerHTML = '';
+  document.getElementById('importConfirmBtn').disabled = true;
+  document.getElementById('importConfirmBtn').textContent = 'Importar';
+  importParsedRows = [];
+  document.getElementById('importOverlay').classList.add('visible');
+}
+
+function closeImportModal() {
+  document.getElementById('importOverlay').classList.remove('visible');
+}
+
+function parseImportRow(line, n) {
+  const cells = line.split('\t').map(c => c.trim());
+  const [section, prueba, question, optA, optB, optC, answerRaw, myAnswerRaw, statusRaw] = cells;
+  const errors = [];
+
+  if (!section)  errors.push('falta sección');
+  if (!question) errors.push('falta pregunta');
+  if (!optA || !optB || !optC) errors.push('faltan opciones A/B/C');
+
+  const answer = (answerRaw || '').trim().toUpperCase();
+  if (!IMPORT_VALID_LETTERS.includes(answer)) errors.push('"respuesta correcta" debe ser A, B o C');
+
+  const myAnswer = (myAnswerRaw || '').trim().toUpperCase();
+  if (myAnswer && !IMPORT_VALID_LETTERS.includes(myAnswer)) errors.push('"mi respuesta" debe ser A, B, C o vacío');
+
+  const status = (statusRaw || '').trim().toLowerCase();
+  if (status && !status.split('|').map(s => s.trim()).every(s => IMPORT_VALID_STATUSES.includes(s))) {
+    errors.push('"estado" debe ser segura, revisar, ilegible o vacío');
+  }
+
+  return {
+    n, errors,
+    preview: question || '(sin pregunta)',
+    payload: errors.length ? null : {
+      section, question,
+      options: { A: optA, B: optB, C: optC },
+      answer, my_answer: myAnswer || null,
+      prueba: prueba || null,
+      status: status || null
+    }
+  };
+}
+
+function previewImport() {
+  const lines = document.getElementById('importTextarea').value
+    .split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  importParsedRows = lines.map((line, i) => parseImportRow(line, i + 1));
+
+  const preview = document.getElementById('importPreview');
+  const confirmBtn = document.getElementById('importConfirmBtn');
+  if (!importParsedRows.length) {
+    preview.innerHTML = '';
+    confirmBtn.disabled = true;
+    return;
+  }
+
+  const ok  = importParsedRows.filter(r => !r.errors.length);
+  const bad = importParsedRows.filter(r => r.errors.length);
+  preview.innerHTML = `
+    <p class="import-summary">
+      <span class="import-ok">✅ ${ok.length} listas para importar</span>
+      ${bad.length ? `<span class="import-bad">⚠️ ${bad.length} con errores (no se importarán)</span>` : ''}
+    </p>
+    ${bad.length ? `<ul class="import-errors">${bad.map(r =>
+      `<li>Fila ${r.n} — "${r.preview.substring(0, 50)}": ${r.errors.join(', ')}</li>`
+    ).join('')}</ul>` : ''}
+  `;
+  confirmBtn.disabled = ok.length === 0;
+}
+
+async function runImport() {
+  const ok = importParsedRows.filter(r => !r.errors.length);
+  if (!ok.length) return;
+
+  const btn = document.getElementById('importConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Importando…';
+
+  const { data, error } = await db.from('preguntas').insert(ok.map(r => r.payload)).select();
+  btn.textContent = 'Importar';
+  if (error) {
+    showToast(`⚠️ No se pudo importar: ${error.message}`);
+    btn.disabled = false;
+    return;
+  }
+
+  questions.push(...data);
+  document.getElementById('totalCount').textContent = questions.length;
+  logActivity(null, `Importó ${data.length} pregunta(s) desde plantilla`, null);
+  showToast(`✅ Se importaron ${data.length} preguntas`);
+  closeImportModal();
+  render();
+}
+
 function renderExamConfigList() {
   const sections = [...new Set(questions.map(q => q.section))].sort();
   const list = document.getElementById('examConfigList');
@@ -990,8 +1109,10 @@ async function setPrueba(qId, prueba, e) {
   if (!q) return;
   const newVal = q.prueba === prueba ? null : prueba;
   const { error } = await db.from('preguntas').update({ prueba: newVal }).eq('id', qId);
-  if (error) { console.error(error); return; }
+  if (error) { showToast(`⚠️ No se pudo guardar la prueba: ${error.message}`); return; }
   q.prueba = newVal;
+  const label = prueba.replace('prueba', 'Prueba ');
+  showToast(newVal ? `🏷️ Asignada a ${label}` : `🚫 Quitada de ${label}`);
   render();
 }
 
@@ -1012,10 +1133,11 @@ async function setFlag(qId, flag, e) {
   }
   const newStatus = flags.size ? [...flags].join('|') : null;
   const { error } = await db.from('preguntas').update({ status: newStatus }).eq('id', qId);
-  if (error) { console.error(error); return; }
+  if (error) { showToast(`⚠️ No se pudo guardar la marca: ${error.message}`); return; }
   q.status = newStatus;
   const labels = { segura:'✅ Confirmada', revisar:'❓ Dudosa', ilegible:'✏️ Por corregir' };
   logActivity(qId, adding ? `Marcó como ${labels[flag]}` : `Quitó ${labels[flag]}`, q.question?.substring(0,60));
+  showToast(adding ? `${labels[flag]}` : `Se quitó la marca «${labels[flag].replace(/^\S+\s/, '')}»`);
   render();
 }
 
