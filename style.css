@@ -683,6 +683,13 @@ mark {
   display: flex; gap: 6px; flex-wrap: wrap;
   margin-bottom: 20px;
 }
+.module-hint {
+  display: none;
+  font-size: 11px; line-height: 1.4; color: var(--muted);
+  margin: 8px 2px 0;
+}
+.module-hint.visible { display: block; }
+
 .tab {
   padding: 7px 15px;
   border-radius: 100px;
@@ -1202,6 +1209,10 @@ body.exam-setup-browse .topbar-stats { display: none; }
 }
 .exam-config-bulk-actions button:hover { background: rgba(192,132,252,0.12); }
 
+.import-body {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column;
+}
 .import-steps {
   list-style: none; counter-reset: import-step;
   display: flex; flex-direction: column; gap: 10px;
@@ -1242,7 +1253,7 @@ body.exam-setup-browse .topbar-stats { display: none; }
 }
 .import-preview { margin-top: 12px; }
 .import-summary {
-  display: flex; gap: 14px; align-items: center;
+  display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center;
   font-size: 13px; font-weight: 600;
 }
 .import-ok  { color: var(--green); }
@@ -1697,7 +1708,7 @@ body:has(.modal-overlay.visible) .fab { display: none; }
 
   .flag-btn  { width: 24px; height: 24px; font-size: 12px; border-radius: 6px; }
   .prueba-btn { font-size: 9px !important; width: 22px !important; height: 22px !important; }
-  .edit-btn  { display: none; }
+  .edit-btn, .flag-divider { display: none; }
 
   .q-section { font-size: 9px; gap: 5px; margin-bottom: 5px; }
   .q-text    { font-size: 14px; line-height: 1.55; }

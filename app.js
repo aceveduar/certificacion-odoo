@@ -186,6 +186,9 @@ function toggleTheme() {
 let questions = [];
 let mode = 'study';
 let activeSection = 'all';
+// En Práctica el usuario puede combinar varios módulos a la vez; un set
+// vacío equivale a "Todas" (igual que activeSection === 'all' en Estudio).
+let practiceSections = new Set();
 let searchTerm = '';
 let answered    = {};
 let revealed    = {};
@@ -1422,6 +1425,7 @@ async function init() {
   const tabs = document.getElementById('sectionTabs');
   const allTab = document.createElement('button');
   allTab.className = 'tab active'; allTab.textContent = 'Todas';
+  allTab.dataset.section = 'all';
   allTab.onclick = () => filterBySection('all', allTab);
   tabs.appendChild(allTab);
 
@@ -1429,6 +1433,7 @@ async function init() {
     const count = questions.filter(q => q.section === s).length;
     const t = document.createElement('button');
     t.className = 'tab';
+    t.dataset.section = s;
     t.innerHTML = `${s} <span class="tab-count">${count}</span>`;
     t.onclick = () => filterBySection(s, t);
     tabs.appendChild(t);
@@ -1464,16 +1469,29 @@ async function init() {
 }
 
 function filterBySection(sec, tab) {
+  if (mode === 'practice') {
+    // Multi-selección: "Todas" limpia la combinación; cada módulo se
+    // agrega/quita del set sin afectar a los demás.
+    if (sec === 'all') practiceSections.clear();
+    else if (practiceSections.has(sec)) practiceSections.delete(sec);
+    else practiceSections.add(sec);
+    updateTabs();
+    render();
+    return;
+  }
   activeSection = sec;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  tab.classList.add('active');
+  updateTabs();
   render();
 }
 
 function updateTabs() {
   document.querySelectorAll('.tab').forEach(t => {
-    const isAll = t.textContent === 'Todas' && activeSection === 'all';
-    t.classList.toggle('active', isAll || t.textContent === activeSection);
+    const sec = t.dataset.section;
+    if (mode === 'practice') {
+      t.classList.toggle('active', sec === 'all' ? practiceSections.size === 0 : practiceSections.has(sec));
+    } else {
+      t.classList.toggle('active', sec === 'all' ? activeSection === 'all' : sec === activeSection);
+    }
   });
 }
 
@@ -1528,6 +1546,7 @@ function setMode(m) {
   document.getElementById('examSetup').style.display    = m === 'exam' ? 'block' : 'none';
   document.getElementById('examTimerBar').style.display = 'none';
   document.getElementById('sectionStatsPanel').style.display = 'none';
+  document.getElementById('moduleHint').classList.toggle('visible', m === 'practice');
   // Se limpia aquí incondicionalmente; si el modo es 'exam', renderExamSetup()
   // (más abajo) la vuelve a aplicar según corresponda (auditor vs. usuario común).
   document.body.classList.remove('exam-setup-browse');
@@ -1552,6 +1571,7 @@ function setMode(m) {
 
   expandedIds.clear();
   document.querySelectorAll('.q-card').forEach(c => c.classList.remove('expanded'));
+  updateTabs();
   render();
 }
 
@@ -1584,7 +1604,9 @@ function updateScore() {
 
 function getFiltered() {
   return questions.filter(q => {
-    const secOk = activeSection === 'all' || q.section === activeSection;
+    const secOk = mode === 'practice'
+      ? (practiceSections.size === 0 || practiceSections.has(q.section))
+      : (activeSection === 'all' || q.section === activeSection);
     const searchOk = !searchTerm ||
       q.question.toLowerCase().includes(searchTerm) ||
       Object.values(q.options).some(o => o.toLowerCase().includes(searchTerm));
