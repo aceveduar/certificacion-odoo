@@ -570,11 +570,11 @@ mark {
   box-shadow: var(--shadow-sm);
 }
 .auditor-btn.visible { display: inline-flex; align-items: center; justify-content: center; }
-.auditor-btn:hover { border-color: var(--yellow); color: var(--yellow); }
+.auditor-btn:hover { border-color: var(--accent); color: var(--accent); }
 .auditor-btn.active {
-  background: rgba(251,191,36,0.12);
-  border-color: var(--yellow); color: var(--yellow);
-  box-shadow: 0 0 12px rgba(251,191,36,0.2);
+  background: var(--accent-glow);
+  border-color: var(--accent); color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
 }
 
 /* Menú desplegable que agrupa las herramientas de auditor menos usadas
@@ -858,6 +858,11 @@ body.exam-setup-browse .topbar-stats { display: none; }
   background: rgba(255,255,255,0.03);
   border: 1px solid var(--border);
 }
+.flag-divider {
+  width: 1px; height: 20px;
+  background: var(--border);
+  margin: 0 2px; flex-shrink: 0;
+}
 .flag-btn:hover { opacity: 1; background: rgba(255,255,255,0.06); border-color: var(--border2); }
 .flag-btn.active { opacity: 1; background: rgba(255,255,255,0.07); border-color: var(--border2); }
 .ilegible-btn.active { opacity: 1; }
@@ -880,13 +885,13 @@ body.exam-setup-browse .topbar-stats { display: none; }
   flex-shrink: 0;
   width: 26px; height: 26px;
   display: flex; align-items: center; justify-content: center;
-  color: var(--muted); font-size: 18px; font-weight: 300;
+  color: var(--muted); font-size: 13px; font-weight: 700;
   transition: all var(--transition);
   border-radius: 50%; background: transparent;
   margin-top: 2px;
 }
 .q-card.expanded .q-toggle {
-  transform: rotate(45deg);
+  transform: rotate(180deg);
   color: var(--accent);
   background: rgba(124,92,252,0.12);
 }

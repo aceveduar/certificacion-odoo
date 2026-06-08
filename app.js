@@ -1626,13 +1626,14 @@ function render() {
               return `<button class="flag-btn prueba-btn ${q.prueba === p ? `active ${cls}` : ''}" title="${p.replace('prueba','Prueba ')}" onclick="event.stopPropagation(); setPrueba(${q.id}, '${p}', event)">${label}</button>`;
             }).join('')}
           </span>
+          <span class="flag-divider"></span>
           <button class="flag-btn edit-btn" title="Editar pregunta" onclick="event.stopPropagation(); handleEditClick(${q.id})">✏️</button>
           ` : ''}
           ${mode === 'exam' && !examSubmitted
             ? `<button class="flag-btn exam-flag-btn ${examFlagged.has(globalIdx) ? 'flagged' : ''}" title="Marcar para revisión" onclick="event.stopPropagation(); toggleExamFlag(${globalIdx})">🚩</button>`
             : ''}
         </div>
-        <div class="q-toggle">+</div>
+        <div class="q-toggle">▾</div>
       </div>
       <div class="q-body">
         <div class="options-list">${optHtml}</div>
