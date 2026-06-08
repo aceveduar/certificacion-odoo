@@ -1507,6 +1507,19 @@ body:has(.modal-overlay.visible) .fab { display: none; }
   color: var(--text); margin-bottom: 10px;
 }
 .modal p { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+.login-pass-wrap { position: relative; }
+.login-pass-wrap input { padding-right: 44px; }
+.login-pass-toggle {
+  position: absolute; right: 4px; top: 50%;
+  transform: translateY(calc(-50% - 8px));
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer;
+  font-size: 16px; opacity: 0.6;
+  border-radius: var(--radius-sm);
+  transition: opacity var(--transition);
+}
+.login-pass-toggle:hover { opacity: 1; }
 .modal input {
   width: 100%;
   background: var(--surface);

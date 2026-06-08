@@ -266,8 +266,11 @@
       <p>Ingresa tu correo y contraseña para acceder.</p>
       <input type="email" id="loginEmail" placeholder="correo@ejemplo.com" maxlength="120"
              onkeydown="if(event.key==='Enter') doLogin()">
-      <input type="password" id="loginPassword" placeholder="Contraseña"
-             onkeydown="if(event.key==='Enter') doLogin()">
+      <div class="login-pass-wrap">
+        <input type="password" id="loginPassword" placeholder="Contraseña"
+               onkeydown="if(event.key==='Enter') doLogin()">
+        <button type="button" class="login-pass-toggle" id="loginPassToggle" title="Mostrar contraseña" onclick="toggleLoginPasswordVisibility()">👁️</button>
+      </div>
       <div class="modal-actions">
         <button class="modal-btn confirm" onclick="doLogin()">Entrar</button>
       </div>

@@ -33,9 +33,22 @@ async function doLogin() {
   const errEl = document.getElementById('loginError');
   errEl.textContent = '';
   if (!email || !password) { errEl.textContent = 'Ingresa correo y contraseña.'; return; }
+  const btn = document.querySelector('#loginOverlay .modal-btn.confirm');
+  btn.disabled = true; btn.textContent = 'Entrando…';
   const { error } = await db.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = 'Entrar';
   if (error) { errEl.textContent = 'Correo o contraseña incorrectos.'; return; }
   // onAuthStateChange se encarga de cargar el perfil y entrar a la app
+}
+
+function toggleLoginPasswordVisibility() {
+  const input = document.getElementById('loginPassword');
+  const btn = document.getElementById('loginPassToggle');
+  const showing = input.type === 'text';
+  input.type = showing ? 'password' : 'text';
+  btn.textContent = showing ? '👁️' : '🙈';
+  btn.title = showing ? 'Mostrar contraseña' : 'Ocultar contraseña';
+  input.focus();
 }
 
 async function showUserMenu() {
@@ -73,6 +86,11 @@ function showLoginScreen() {
   document.getElementById('loginEmail').value = '';
   document.getElementById('loginPassword').value = '';
   document.getElementById('loginError').textContent = '';
+  const passInput = document.getElementById('loginPassword');
+  const passToggle = document.getElementById('loginPassToggle');
+  passInput.type = 'password';
+  passToggle.textContent = '👁️';
+  passToggle.title = 'Mostrar contraseña';
   document.getElementById('loginOverlay').classList.add('visible');
   setTimeout(() => document.getElementById('loginEmail').focus(), 100);
 }
