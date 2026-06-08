@@ -10,7 +10,7 @@
 <body>
 <div class="container">
   <header>
-    <div class="badge">📋 Examen Oficial</div>
+    <div class="badge" id="modeBadge">📖 Modo Estudio</div>
     <h1>Certificación Funcional<br>Odoo 19</h1>
     <p class="subtitle">Banco de preguntas completo · Todas las secciones</p>
   </header>
@@ -24,10 +24,6 @@
         <input type="text" id="searchInput" placeholder="Buscar pregunta...">
         <button class="search-clear" id="searchClear" onclick="clearSearch()" title="Borrar">✕</button>
       </div>
-      <select class="filter-select" id="sectionFilter">
-        <option value="">Todas las secciones</option>
-      </select>
-
       <div class="sidebar-section auditor-only" id="ssEstado">
         <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">Estado <span class="ss-toggle">▼</span></div>
         <div class="sidebar-section-body">
@@ -53,10 +49,17 @@
         </div>
       </div>
 
-      <div class="sidebar-section">
+      <div class="sidebar-section auditor-only" id="ssExamen">
         <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">Examen <span class="ss-toggle">▼</span></div>
         <div class="sidebar-section-body">
           <div class="prueba-filters" id="pruebaFilters"></div>
+        </div>
+      </div>
+
+      <div class="sidebar-section user-only" id="ssMyProgress">
+        <div class="sidebar-section-header" onclick="toggleSidebarSection(this)">Mi progreso <span class="ss-toggle">▼</span></div>
+        <div class="sidebar-section-body">
+          <div id="myProgressSummary" class="my-progress-summary"></div>
         </div>
       </div>
 
@@ -81,24 +84,34 @@
             <button class="mode-btn"        onclick="setMode('exam')"     id="btnExam">🎓 Examen</button>
           </div>
           <button class="shuffle-btn" id="shuffleBtn" onclick="toggleShuffle()" title="Barajar preguntas" style="display:none">🔀</button>
+          <span class="exam-focus-label" id="examFocusLabel"></span>
           <div class="topbar-stats">
             <span class="ts-item"><span class="ts-num" id="totalCount">—</span><span class="ts-lbl">preguntas</span></span>
             <span class="ts-sep">·</span>
             <span class="ts-item"><span class="ts-num" id="sectionCount">—</span><span class="ts-lbl">secciones</span></span>
-            <span class="ts-sep">·</span>
-            <span class="ts-item"><span class="ts-num" id="answeredCount" style="color:var(--accent2)">0</span><span class="ts-lbl">resp.</span></span>
-            <span class="ts-sep">·</span>
-            <span class="ts-item"><span class="ts-num" id="correctCount" style="color:var(--green)">0</span><span class="ts-lbl">correctas</span></span>
+            <span id="liveScoreStats" style="display:none">
+              <span class="ts-sep">·</span>
+              <span class="ts-item"><span class="ts-num" id="answeredCount" style="color:var(--accent2)">0</span><span class="ts-lbl">resp.</span></span>
+              <span class="ts-sep">·</span>
+              <span class="ts-item"><span class="ts-num" id="correctCount" style="color:var(--green)">0</span><span class="ts-lbl">correctas</span></span>
+            </span>
           </div>
         </div>
         <div class="topbar-actions">
           <button class="progress-btn" id="progressBtn" onclick="openProgress()" title="Mi progreso">📈</button>
-          <button class="results-btn" id="resultsBtn" onclick="toggleResults()">📊</button>
+          <div class="auditor-tools" id="auditorTools">
+            <button class="auditor-tools-btn" id="auditorToolsBtn" onclick="toggleAuditorTools(event)" title="Herramientas de auditor">🛠️</button>
+            <div class="auditor-tools-menu" id="auditorToolsMenu">
+              <button class="auditor-menu-item" id="userStatsBtn" onclick="openUserStats(); closeAuditorTools()">🏆 Resultados por persona</button>
+              <button class="auditor-menu-item" id="resultsBtn" onclick="toggleResults(); closeAuditorTools()">📊 Resultados</button>
+              <button class="auditor-menu-item" id="activityBtn" onclick="openActivity(); closeAuditorTools()">🕐 Historial de actividad</button>
+              <button class="auditor-menu-item" id="examConfigBtn" onclick="openExamConfigModal(); closeAuditorTools()">⚙️ Exámenes por módulo</button>
+            </div>
+          </div>
           <div class="user-badge" id="userBadge" onclick="showUserMenu()" title="Tu perfil">
             <span class="user-avatar" id="userAvatar">?</span>
             <span class="user-name"  id="userNameEl">—</span>
           </div>
-          <button class="activity-btn" id="activityBtn" onclick="openActivity()" title="Historial de actividad">🕐</button>
           <button class="auditor-btn" id="auditorBtn" onclick="toggleAuditor()">🔑</button>
           <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Tema"></button>
         </div>
@@ -106,22 +119,38 @@
 
       <!-- EXAM SETUP -->
       <div class="exam-setup" id="examSetup" style="display:none">
-        <div class="exam-setup-icon">🎓</div>
-        <h3>Simulacro de Examen</h3>
-        <p>90 minutos · preguntas aleatorias · sin ver respuestas hasta el final</p>
-        <div class="exam-setup-row">
-          <label>Examen a simular:</label>
-          <select id="examPruebaSelect" class="form-input" style="max-width:200px">
-            <option value="">Todas las preguntas</option>
-            <option value="prueba1">Prueba 1</option>
-            <option value="prueba2">Prueba 2</option>
-            <option value="prueba3">Prueba 3</option>
-          </select>
+
+        <!-- Setup admin/auditor: simulacro completo (sin cambios) -->
+        <div id="examSetupAdmin">
+          <div class="exam-setup-icon">🎓</div>
+          <h3>Simulacro de Examen</h3>
+          <p>90 minutos · preguntas aleatorias · sin ver respuestas hasta el final</p>
+          <div class="exam-setup-row">
+            <label>Examen a simular:</label>
+            <select id="examPruebaSelect" class="form-input" style="max-width:200px">
+              <option value="">Todas las preguntas</option>
+              <option value="prueba1">Prueba 1</option>
+              <option value="prueba2">Prueba 2</option>
+              <option value="prueba3">Prueba 3</option>
+            </select>
+          </div>
+          <div class="exam-setup-count" id="examQCount"></div>
+          <div class="exam-setup-actions">
+            <button class="modal-btn confirm" onclick="startExam()">▶ Comenzar examen</button>
+            <button class="modal-btn cancel"  onclick="setMode('study')">Cancelar</button>
+          </div>
         </div>
-        <div class="exam-setup-count" id="examQCount"></div>
-        <div class="exam-setup-actions">
-          <button class="modal-btn confirm" onclick="startExam()">▶ Comenzar examen</button>
-          <button class="modal-btn cancel"  onclick="setMode('study')">Cancelar</button>
+
+        <!-- Setup usuario: exámenes habilitados por el auditor (por módulo y/o completo) -->
+        <div id="examSetupModule">
+          <div class="exam-setup-icon">🎓</div>
+          <h3>Exámenes disponibles</h3>
+          <p>Elige un examen y preséntalo dentro del tiempo asignado</p>
+          <div class="exam-module-list" id="examModuleList"></div>
+          <div class="exam-setup-actions">
+            <button class="modal-btn confirm" id="examModuleStartBtn" onclick="startModuleExam()" disabled>▶ Comenzar examen</button>
+            <button class="modal-btn cancel"  onclick="setMode('study')">Cancelar</button>
+          </div>
         </div>
       </div>
 
@@ -133,6 +162,9 @@
           <span class="timer-label">restantes</span>
         </div>
         <span class="exam-progress-info" id="examProgressInfo">0/0 respondidas</span>
+        <button class="exam-flag-filter-btn" id="examFlagFilterBtn" onclick="toggleExamFlagFilter()" style="display:none">
+          🚩 Ver marcadas <span id="examFlagFilterCount">0</span>
+        </button>
         <div class="timer-progress-wrap"><div class="timer-progress-fill" id="timerFill"></div></div>
         <button class="exam-submit-btn" onclick="confirmSubmitExam()">Entregar examen ✓</button>
       </div>
@@ -228,9 +260,11 @@
   <!-- Modal login de usuario -->
   <div class="modal-overlay" id="loginOverlay">
     <div class="modal" onclick="event.stopPropagation()">
-      <h3>👋 ¿Quién eres?</h3>
-      <p>Ingresa tu nombre para identificar tus cambios y ver el historial de actividad.</p>
-      <input type="text" id="loginName" placeholder="Tu nombre completo..." maxlength="40"
+      <h3>👋 Inicia sesión</h3>
+      <p>Ingresa tu correo y contraseña para acceder.</p>
+      <input type="email" id="loginEmail" placeholder="correo@ejemplo.com" maxlength="120"
+             onkeydown="if(event.key==='Enter') doLogin()">
+      <input type="password" id="loginPassword" placeholder="Contraseña"
              onkeydown="if(event.key==='Enter') doLogin()">
       <div class="modal-actions">
         <button class="modal-btn confirm" onclick="doLogin()">Entrar</button>
@@ -252,17 +286,34 @@
     </div>
   </div>
 
-  <!-- Modal auditor -->
-  <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
-    <div class="modal" onclick="event.stopPropagation()">
-      <h3>Modo Auditor</h3>
-      <p id="auditorModalMsg">Ingresa la contraseña para acceder al modo auditor.</p>
-      <input type="password" id="auditorPass" placeholder="Contraseña" onkeydown="if(event.key==='Enter') checkPass()">
-      <div class="modal-actions">
-        <button class="modal-btn cancel" onclick="closeModal()">Cancelar</button>
-        <button class="modal-btn confirm" onclick="checkPass()">Entrar</button>
+  <!-- Modal configuración de exámenes por módulo (auditor) -->
+  <div class="modal-overlay" id="examConfigOverlay" onclick="closeExamConfigModal()">
+    <div class="modal activity-modal" onclick="event.stopPropagation()">
+      <div class="activity-header">
+        <h3>⚙️ Exámenes por módulo</h3>
+        <button class="modal-btn cancel" style="flex:0;padding:8px 14px" onclick="closeExamConfigModal()">✕</button>
       </div>
-      <p class="modal-error" id="modalError"></p>
+      <div class="exam-config-intro">
+        <p style="color:var(--muted);font-size:14px;margin:0">
+          Activa los módulos que los usuarios podrán rendir como examen y define cuántos minutos dura cada uno.
+        </p>
+        <div class="exam-config-bulk-actions">
+          <button onclick="toggleAllExamConfigs(true)">Seleccionar todos</button>
+          <button onclick="toggleAllExamConfigs(false)">Desmarcar todos</button>
+        </div>
+      </div>
+      <div id="examConfigList" class="activity-list"></div>
+    </div>
+  </div>
+
+  <!-- Resultados por persona (auditor) -->
+  <div class="modal-overlay" id="userStatsOverlay" onclick="closeUserStats()">
+    <div class="modal activity-modal" onclick="event.stopPropagation()">
+      <div class="activity-header">
+        <h3 id="userStatsTitle">🏆 Resultados por persona</h3>
+        <button class="modal-btn cancel" style="flex:0;padding:8px 14px" onclick="closeUserStats()">✕</button>
+      </div>
+      <div id="userStatsList" class="activity-list"></div>
     </div>
   </div>
 
@@ -274,13 +325,13 @@
       <button class="results-tab"        id="rtab3" onclick="switchResultTab(3)">📊 Prueba 3</button>
     </div>
     <div class="results-img-wrap" id="rimg1">
-      <img src="prueba1.jpeg" alt="Resultados Prueba 1">
+      <img src="assets/prueba1.jpeg" alt="Resultados Prueba 1">
     </div>
     <div class="results-img-wrap" id="rimg2" style="display:none">
-      <img src="prueba2.png" alt="Resultados Prueba 2">
+      <img src="assets/prueba2.png" alt="Resultados Prueba 2">
     </div>
     <div class="results-img-wrap" id="rimg3" style="display:none">
-      <img src="prueba3.png" alt="Resultados Prueba 3">
+      <img src="assets/prueba3.png" alt="Resultados Prueba 3">
     </div>
   </div>
 
@@ -295,1285 +346,6 @@
 <button class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Volver arriba">↑</button>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-const SUPABASE_URL = 'https://zenxdjuknwwdfbmbdsjg.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_rYyf2FSuhy9vaPV0k7eNoA_cxSlen2m';
-const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const AUDITOR_PASS = 'odoo2025';
-
-// ─── USUARIO ─────────────────────────────────────────────────────────────────
-let currentUser = localStorage.getItem('odoo_user') || null;
-
-function getInitials(name) {
-  return (name || '?').split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
-}
-
-function timeAgo(iso) {
-  if (!iso) return '';
-  const diff = Date.now() - new Date(iso);
-  if (diff < 60000)    return 'ahora mismo';
-  if (diff < 3600000)  return `hace ${Math.floor(diff/60000)}m`;
-  if (diff < 86400000) return `hace ${Math.floor(diff/3600000)}h`;
-  return new Date(iso).toLocaleDateString('es-MX', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-}
-
-function updateUserUI() {
-  if (!currentUser) return;
-  document.getElementById('userAvatar').textContent = getInitials(currentUser);
-  document.getElementById('userNameEl').textContent = currentUser.split(' ')[0];
-}
-
-function doLogin() {
-  const val = document.getElementById('loginName').value.trim();
-  if (!val) { document.getElementById('loginError').textContent = 'Escribe tu nombre.'; return; }
-  currentUser = val;
-  localStorage.setItem('odoo_user', val);
-  document.getElementById('loginOverlay').classList.remove('visible');
-  updateUserUI();
-}
-
-function showUserMenu() {
-  if (!confirm(`Usuario actual: ${currentUser}\n\n¿Cambiar de usuario?`)) return;
-  localStorage.removeItem('odoo_user');
-  currentUser = null;
-  document.getElementById('userAvatar').textContent = '?';
-  document.getElementById('userNameEl').textContent = '—';
-  document.getElementById('loginName').value = '';
-  document.getElementById('loginError').textContent = '';
-  document.getElementById('loginOverlay').classList.add('visible');
-  setTimeout(() => document.getElementById('loginName').focus(), 100);
-}
-
-async function logActivity(questionId, action, details) {
-  if (!currentUser) return;
-  await db.from('activity_log').insert({
-    user_name:   currentUser,
-    question_id: questionId || null,
-    action,
-    details
-  });
-  // Actualizar modified_by en la pregunta
-  if (questionId) {
-    const now = new Date().toISOString();
-    await db.from('preguntas').update({ modified_by: currentUser, modified_at: now }).eq('id', questionId);
-    const q = questions.find(q => q.id === questionId);
-    if (q) { q.modified_by = currentUser; q.modified_at = now; }
-  }
-}
-
-async function openActivity() {
-  document.getElementById('activityOverlay').classList.add('visible');
-  const list = document.getElementById('activityList');
-  list.innerHTML = '<div class="empty"><div class="emoji">⏳</div><p>Cargando...</p></div>';
-  console.log('[openActivity] Consultando activity_log...');
-  const { data, error } = await db.from('activity_log')
-    .select('*, preguntas(question)')
-    .order('created_at', { ascending: false })
-    .limit(80);
-  if (error) {
-    console.error('[openActivity] Error de Supabase:', error);
-    list.innerHTML = `<div class="empty"><div class="emoji">⚠️</div><p>Error al cargar: ${error.message}</p></div>`;
-    return;
-  }
-  if (!data?.length) {
-    list.innerHTML = '<div class="empty"><div class="emoji">📭</div><p>Sin actividad registrada.</p></div>';
-    return;
-  }
-  list.innerHTML = data.map(r => `
-    <div class="activity-item">
-      <span class="act-avatar">${getInitials(r.user_name)}</span>
-      <div class="act-body">
-        <div class="act-top">
-          <strong>${r.user_name}</strong>
-          <span class="act-action">${r.action}</span>
-          <span class="act-time">${timeAgo(r.created_at)}</span>
-        </div>
-        ${r.details ? `<div class="act-detail">${r.details}</div>` : ''}
-        ${r.preguntas?.question ? `<div class="act-question">${r.preguntas.question.substring(0,80)}…</div>` : ''}
-      </div>
-    </div>
-  `).join('');
-}
-
-function closeActivity() {
-  document.getElementById('activityOverlay').classList.remove('visible');
-}
-
-(function initTheme() {
-  const saved     = localStorage.getItem('odoo_theme');
-  const preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  const theme     = saved || preferred;
-  document.documentElement.setAttribute('data-theme', theme);
-  document.getElementById('themeBtn').textContent = theme === 'dark' ? '☀️' : '🌙';
-})();
-
-// Mostrar login si no hay usuario guardado
-if (!currentUser) {
-  document.getElementById('loginOverlay').classList.add('visible');
-  setTimeout(() => document.getElementById('loginName').focus(), 300);
-} else {
-  updateUserUI();
-}
-
-// Seguir cambios del sistema solo si el usuario no ha elegido manualmente
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-  if (localStorage.getItem('odoo_theme')) return;
-  const theme = e.matches ? 'dark' : 'light';
-  document.documentElement.setAttribute('data-theme', theme);
-  document.getElementById('themeBtn').textContent = theme === 'dark' ? '☀️' : '🌙';
-});
-
-// Scroll listener para botón arriba + sticky shadow
-window.addEventListener('scroll', () => {
-  const y = window.scrollY;
-  document.getElementById('backToTop').classList.toggle('visible', y > 350);
-}, { passive: true });
-
-function toggleResults() {
-  const panel = document.getElementById('resultsPanel');
-  const btn   = document.getElementById('resultsBtn');
-  const open  = panel.style.display === 'none';
-  panel.style.display = open ? 'block' : 'none';
-  btn.classList.toggle('active', open);
-}
-
-function switchResultTab(n) {
-  [1,2,3].forEach(i => {
-    const img = document.getElementById(`rimg${i}`);
-    const tab = document.getElementById(`rtab${i}`);
-    if (img) img.style.display = i === n ? 'block' : 'none';
-    if (tab) tab.classList.toggle('active', i === n);
-  });
-}
-
-function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme');
-  const next = current === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️' : '🌙';
-  localStorage.setItem('odoo_theme', next);
-}
-
-let questions = [];
-let mode = 'study';
-let activeSection = 'all';
-let searchTerm = '';
-let answered    = {};
-let revealed    = {};
-let expandedIds  = new Set();
-let dragSrcId    = null;
-let pendingEditId = null;
-
-// ── SHUFFLE ──────────────────────────────────────────
-let shuffleEnabled = false;
-let shuffledIds    = []; // question ids in shuffled order
-
-function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
-
-function toggleShuffle() {
-  shuffleEnabled = !shuffleEnabled;
-  document.getElementById('shuffleBtn').classList.toggle('active', shuffleEnabled);
-  if (shuffleEnabled) shuffledIds = shuffle(questions.map(q => q.id));
-  render();
-}
-
-// ── EXAM ─────────────────────────────────────────────
-let examTimer      = null;
-let examSecsLeft   = 0;
-let examTotalSecs  = 0;
-let examSubmitted  = false;
-let examStartTs    = null;
-let examFlagged    = new Set(); // global indices marcados para revisión
-
-function updateExamSetupCount() {
-  const prueba = document.getElementById('examPruebaSelect').value;
-  const base = prueba ? questions.filter(q => q.prueba === prueba) : questions;
-  const count = base.filter(q => q.answer).length;
-  document.getElementById('examQCount').textContent = `${count} preguntas`;
-}
-
-function startExam() {
-  examSubmitted = false;
-  const prueba  = document.getElementById('examPruebaSelect').value;
-  shuffleEnabled = true;
-  const base = prueba ? questions.filter(q => q.prueba === prueba) : questions;
-  const pool = base.filter(q => q.answer);
-  shuffledIds = shuffle(pool.map(q => q.id));
-  examSecsLeft  = 90 * 60;
-  examTotalSecs = 90 * 60;
-  examStartTs   = Date.now();
-  answered = {}; revealed = {}; examFlagged = new Set();
-  document.getElementById('examSetup').style.display   = 'none';
-  document.getElementById('examTimerBar').style.display = 'flex';
-  document.getElementById('sectionStatsPanel').style.display = 'none';
-  startTimer();
-  render();
-}
-
-function toggleExamFlag(globalIdx) {
-  if (examFlagged.has(globalIdx)) examFlagged.delete(globalIdx);
-  else examFlagged.add(globalIdx);
-  // Actualiza solo el botón sin re-renderizar todo
-  const card = document.querySelector(`.q-card[data-qid="${questions[globalIdx].id}"]`);
-  if (card) {
-    const btn = card.querySelector('.exam-flag-btn');
-    if (btn) btn.classList.toggle('flagged', examFlagged.has(globalIdx));
-  }
-  updateExamProgress();
-}
-
-function updateExamProgress() {
-  const filtered = getFiltered();
-  const total = filtered.length;
-  const respondidas = filtered.filter((q, fi) => answered[questions.indexOf(q)] !== undefined).length;
-  const marcadas = filtered.filter((q) => examFlagged.has(questions.indexOf(q))).length;
-  const el = document.getElementById('examProgressInfo');
-  if (el) el.textContent = `${respondidas}/${total} respondidas${marcadas > 0 ? ` · ${marcadas} marcadas` : ''}`;
-}
-
-function startTimer() {
-  clearInterval(examTimer);
-  updateTimerDisplay();
-  examTimer = setInterval(() => {
-    examSecsLeft--;
-    updateTimerDisplay();
-    if (examSecsLeft <= 0) { clearInterval(examTimer); submitExam(); }
-  }, 1000);
-}
-
-function updateTimerDisplay() {
-  const m = Math.floor(examSecsLeft / 60).toString().padStart(2, '0');
-  const s = (examSecsLeft % 60).toString().padStart(2, '0');
-  const el = document.getElementById('timerDisplay');
-  if (el) {
-    el.textContent = `${m}:${s}`;
-    el.classList.toggle('timer-warning', examSecsLeft < 600);
-    el.classList.toggle('timer-danger',  examSecsLeft < 180);
-  }
-  const pct = (examSecsLeft / examTotalSecs) * 100;
-  const fill = document.getElementById('timerFill');
-  if (fill) fill.style.width = pct + '%';
-}
-
-function confirmSubmitExam() {
-  const filtered = getFiltered();
-  const total = filtered.length;
-  const respondidas = filtered.filter((q) => answered[questions.indexOf(q)] !== undefined).length;
-  const sinResponder = total - respondidas;
-  const marcadas = filtered.filter((q) => examFlagged.has(questions.indexOf(q))).length;
-
-  let msg = `¿Entregar el examen?`;
-  if (sinResponder > 0) msg += `\n\n⚠️ Tienes ${sinResponder} pregunta${sinResponder > 1 ? 's' : ''} sin responder.`;
-  if (marcadas > 0) msg += `\n🚩 Tienes ${marcadas} marcada${marcadas > 1 ? 's' : ''} para revisión.`;
-
-  if (confirm(msg)) submitExam();
-}
-
-function submitExam() {
-  clearInterval(examTimer);
-  examSubmitted = true;
-  document.getElementById('examTimerBar').style.display = 'none';
-  const duration = Math.round((Date.now() - examStartTs) / 1000);
-  saveSession('exam',
-    document.getElementById('examPruebaSelect').value || 'all',
-    duration);
-  showExamResults(duration);
-}
-
-function showExamResults(duration) {
-  const filtered = getFiltered();
-  const total = filtered.length;
-  const correct = filtered.filter((q) => answered[questions.indexOf(q)] === true).length;
-  const wrong = filtered.filter((q) => answered[questions.indexOf(q)] === false).length;
-  const skipped = total - correct - wrong;
-  const pct = total ? Math.round((correct / total) * 100) : 0;
-  const passed = pct >= 70;
-  const mins = Math.floor(duration / 60);
-  const secs = duration % 60;
-  const marcadas = filtered.filter((q) => examFlagged.has(questions.indexOf(q))).length;
-
-  const stats = getSectionStats();
-  const sectionRows = Object.entries(stats)
-    .sort((a, b) => (b[1].correct / b[1].total) - (a[1].correct / a[1].total))
-    .map(([sec, v]) => {
-      const p = Math.round((v.correct / v.total) * 100);
-      const cls = p >= 70 ? 'good' : p >= 50 ? 'ok' : 'bad';
-      return `<div class="ss-row">
-        <span class="ss-section">${sec}</span>
-        <div class="ss-bar-wrap"><div class="ss-bar ${cls}" style="width:${p}%"></div></div>
-        <span class="ss-score ${cls}">${v.correct}/${v.total}</span>
-        <span class="ss-pct ${cls}">${p}%</span>
-      </div>`;
-    }).join('');
-
-  document.getElementById('examResultsContent').innerHTML = `
-    <div class="er-header">
-      <div class="er-icon">${passed ? '🏆' : '📋'}</div>
-      <div class="er-score ${passed ? 'good' : pct >= 50 ? 'ok' : 'bad'}">${pct}%</div>
-      <div class="er-verdict ${passed ? 'good' : 'bad'}">${passed ? '✅ Aprobado' : '❌ No aprobado'}</div>
-      <div class="er-subtitle">Puntaje mínimo para aprobar: 70%</div>
-    </div>
-    <div class="er-stats">
-      <div class="er-stat good">
-        <div class="er-stat-num">${correct}</div>
-        <div class="er-stat-label">Correctas</div>
-      </div>
-      <div class="er-stat bad">
-        <div class="er-stat-num">${wrong}</div>
-        <div class="er-stat-label">Incorrectas</div>
-      </div>
-      <div class="er-stat muted">
-        <div class="er-stat-num">${skipped}</div>
-        <div class="er-stat-label">Sin responder</div>
-      </div>
-      ${marcadas > 0 ? `<div class="er-stat flagged">
-        <div class="er-stat-num">${marcadas}</div>
-        <div class="er-stat-label">Marcadas</div>
-      </div>` : ''}
-    </div>
-    <div class="er-time">⏱ Tiempo: ${mins}m ${secs.toString().padStart(2,'0')}s de 90:00</div>
-    <div class="er-sections">
-      <div class="er-sections-title">Rendimiento por sección</div>
-      <div class="er-sections-body">${sectionRows}</div>
-    </div>
-    <div class="er-actions">
-      <button class="modal-btn confirm" onclick="closeExamResults()">Ver respuestas</button>
-      <button class="modal-btn cancel" onclick="closeExamResults(); setMode('study')">Volver al estudio</button>
-    </div>`;
-
-  document.getElementById('examResultsOverlay').classList.add('visible');
-}
-
-function closeExamResults() {
-  document.getElementById('examResultsOverlay').classList.remove('visible');
-  renderSectionStats();
-  render();
-}
-
-// ── SECTION STATS ────────────────────────────────────
-function getSectionStats() {
-  const filtered = getFiltered();
-  const bySection = {};
-  filtered.forEach((q, fi) => {
-    const gi = questions.indexOf(q);
-    if (!bySection[q.section]) bySection[q.section] = { total: 0, correct: 0 };
-    bySection[q.section].total++;
-    if (answered[gi] === true) bySection[q.section].correct++;
-  });
-  return bySection;
-}
-
-function renderSectionStats() {
-  const stats  = getSectionStats();
-  const panel  = document.getElementById('sectionStatsPanel');
-  const body   = document.getElementById('sectionStatsBody');
-  const total  = Object.values(stats).reduce((s,v) => s + v.total, 0);
-  const correct = Object.values(stats).reduce((s,v) => s + v.correct, 0);
-  if (total === 0) { panel.style.display = 'none'; return; }
-
-  const rows = Object.entries(stats)
-    .sort((a, b) => (b[1].correct / b[1].total) - (a[1].correct / a[1].total))
-    .map(([sec, v]) => {
-      const pct = Math.round((v.correct / v.total) * 100);
-      const cls = pct >= 70 ? 'good' : pct >= 50 ? 'ok' : 'bad';
-      return `<div class="ss-row">
-        <span class="ss-section">${sec}</span>
-        <div class="ss-bar-wrap"><div class="ss-bar ${cls}" style="width:${pct}%"></div></div>
-        <span class="ss-score ${cls}">${v.correct}/${v.total}</span>
-        <span class="ss-pct ${cls}">${pct}%</span>
-      </div>`;
-    }).join('');
-
-  body.innerHTML = rows;
-  panel.style.display = 'block';
-}
-
-// ── SAVE SESSION ─────────────────────────────────────
-async function saveSession(sessionMode, prueba, duration) {
-  if (!currentUser) {
-    console.warn('[saveSession] No hay usuario logueado — sesión no guardada.');
-    return;
-  }
-  const filtered = getFiltered();
-  const total   = filtered.length;
-  const correct = Object.values(answered).filter(Boolean).length;
-  const pct     = total ? Math.round((correct / total) * 100) : 0;
-  const stats   = getSectionStats();
-  const section_scores = Object.fromEntries(
-    Object.entries(stats).map(([k, v]) => [k, { c: v.correct, t: v.total }])
-  );
-  console.log('[saveSession] Guardando sesión:', { sessionMode, prueba, total, correct, pct, duration });
-  const { error } = await db.from('practice_sessions').insert({
-    user_name: currentUser, mode: sessionMode,
-    prueba: prueba || null, total_questions: total,
-    correct_answers: correct, score_pct: pct,
-    section_scores, duration_seconds: duration
-  });
-  if (error) {
-    console.error('[saveSession] Error al guardar en Supabase:', error);
-    showToast(`⚠️ No se pudo guardar la sesión: ${error.message}`);
-  } else {
-    console.log('[saveSession] Sesión guardada correctamente.');
-    showToast('✅ Sesión guardada en tu progreso');
-  }
-}
-
-async function openProgress() {
-  document.getElementById('progressOverlay').classList.add('visible');
-  const list = document.getElementById('progressList');
-  list.innerHTML = '<div class="empty"><div class="emoji">⏳</div><p>Cargando...</p></div>';
-  if (!currentUser) {
-    list.innerHTML = '<div class="empty"><div class="emoji">👤</div><p>Inicia sesión con tu nombre para ver tu progreso.</p></div>';
-    return;
-  }
-  console.log('[openProgress] Consultando sesiones para:', currentUser);
-  const { data, error } = await db.from('practice_sessions')
-    .select('*')
-    .eq('user_name', currentUser)
-    .order('created_at', { ascending: false })
-    .limit(20);
-  if (error) {
-    console.error('[openProgress] Error de Supabase:', error);
-    list.innerHTML = `<div class="empty"><div class="emoji">⚠️</div><p>Error al cargar: ${error.message}</p></div>`;
-    return;
-  }
-  if (!data?.length) {
-    list.innerHTML = '<div class="empty"><div class="emoji">🏁</div><p>Aún no tienes sesiones guardadas.<br>Completa un modo Práctica o Examen.</p></div>';
-    return;
-  }
-  list.innerHTML = data.map(r => {
-    const icon = r.mode === 'exam' ? '🎓' : '🎯';
-    const cls  = r.score_pct >= 70 ? 'good' : r.score_pct >= 50 ? 'ok' : 'bad';
-    const d    = new Date(r.created_at);
-    const date = d.toLocaleDateString('es-MX', { day:'numeric', month:'short', year:'numeric' });
-    const time = d.toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
-    return `<div class="activity-item">
-      <span class="act-avatar" style="font-size:16px">${icon}</span>
-      <div class="act-body">
-        <div class="act-top">
-          <strong>${r.mode === 'exam' ? 'Examen' : 'Práctica'}</strong>
-          ${r.prueba ? `<span class="prueba-tag ${r.prueba}">${r.prueba.replace('prueba','P')}</span>` : ''}
-          <span class="score-badge ${cls}">${r.score_pct}%</span>
-          <span class="act-time">${date} ${time}</span>
-        </div>
-        <div class="act-detail">${r.correct_answers}/${r.total_questions} correctas · ${Math.round((r.duration_seconds||0)/60)} min</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function closeProgress() {
-  document.getElementById('progressOverlay').classList.remove('visible');
-}
-
-// ── KEYBOARD SHORTCUTS ────────────────────────────────
-let auditorMode = false;
-let flagFilter   = null;
-let answerFilter = null;
-let pruebaFilter = null;
-
-function clearSearch() {
-  const input = document.getElementById('searchInput');
-  input.value = '';
-  searchTerm = '';
-  document.getElementById('searchClear').classList.remove('visible');
-  input.focus();
-  render();
-}
-
-function setPruebaFilter(val) {
-  pruebaFilter = val;
-  document.querySelectorAll('.pf-btn').forEach(b => b.classList.remove('active'));
-  const id = val ? `pfBtn_${val}` : 'pfAll';
-  const el = document.getElementById(id);
-  if (el) el.classList.add('active');
-  render();
-}
-
-function buildPruebaFilters() {
-  const pruebas = [...new Set(questions.map(q => q.prueba).filter(Boolean))].sort();
-  const container = document.getElementById('pruebaFilters');
-  container.innerHTML = '';
-
-  const allBtn = document.createElement('button');
-  allBtn.className = 'pf-btn active'; allBtn.id = 'pfAll';
-  allBtn.textContent = '📋 Todas';
-  allBtn.onclick = () => setPruebaFilter(null);
-  container.appendChild(allBtn);
-
-  if (pruebas.length > 1) {
-    const conBtn = document.createElement('button');
-    conBtn.className = 'pf-btn con-prueba'; conBtn.id = 'pfBtn_con';
-    conBtn.innerHTML = `Con prueba <span id="pfCount_con">0</span>`;
-    conBtn.onclick = () => setPruebaFilter('con');
-    container.appendChild(conBtn);
-  }
-
-  pruebas.forEach(p => {
-    const label = p.replace('prueba', 'Prueba ');
-    const btn = document.createElement('button');
-    btn.className = `pf-btn`; btn.id = `pfBtn_${p}`;
-    btn.innerHTML = `${label} <span id="pfCount_${p}">0</span>`;
-    btn.onclick = () => setPruebaFilter(p);
-    container.appendChild(btn);
-  });
-
-  const sinBtn = document.createElement('button');
-  sinBtn.className = 'pf-btn sin'; sinBtn.id = 'pfBtn_sin';
-  sinBtn.innerHTML = 'Sin asignar <span id="pfCount_sin">0</span>';
-  sinBtn.onclick = () => setPruebaFilter('sin');
-  container.appendChild(sinBtn);
-}
-
-async function setMyAnswer(questionId, key, e) {
-  e.stopPropagation();
-  const q = questions.find(q => q.id === questionId);
-  if (!q) return;
-  const newVal = q.my_answer === key ? null : key;
-  const { error } = await db.from('preguntas').update({ my_answer: newVal }).eq('id', questionId);
-  if (error) { console.error(error); return; }
-  q.my_answer = newVal;
-  logActivity(questionId, newVal ? `Marcó su respuesta: ${newVal}` : 'Quitó su respuesta', q.question?.substring(0,60));
-  render();
-}
-
-function editSection(qId, spanEl) {
-  const q = questions.find(q => q.id === qId);
-  if (!q) return;
-
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.value = q.section;
-  input.className = 'section-inline-input';
-  input.setAttribute('list', 'sectionList');
-
-  spanEl.replaceWith(input);
-  input.focus();
-  input.select();
-
-  async function save() {
-    const newVal = input.value.trim();
-    if (newVal && newVal !== q.section) {
-      const { error } = await db.from('preguntas').update({ section: newVal }).eq('id', qId);
-      if (!error) {
-        q.section = newVal;
-        const dl = document.getElementById('sectionList');
-        if (![...dl.options].some(o => o.value === newVal)) {
-          const opt = document.createElement('option'); opt.value = newVal;
-          dl.appendChild(opt);
-        }
-      }
-    }
-    render();
-  }
-
-  input.addEventListener('blur', save);
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
-    if (e.key === 'Escape') { input.value = q.section; input.blur(); }
-  });
-}
-
-async function setPrueba(qId, prueba, e) {
-  e.stopPropagation();
-  const q = questions.find(q => q.id === qId);
-  if (!q) return;
-  const newVal = q.prueba === prueba ? null : prueba;
-  const { error } = await db.from('preguntas').update({ prueba: newVal }).eq('id', qId);
-  if (error) { console.error(error); return; }
-  q.prueba = newVal;
-  render();
-}
-
-function getQFlags(q) {
-  return new Set(q.status ? q.status.split('|') : []);
-}
-
-async function setFlag(qId, flag, e) {
-  e.stopPropagation();
-  const q = questions.find(q => q.id === qId);
-  if (!q) return;
-  const flags = getQFlags(q);
-  const adding = !flags.has(flag);
-  if (!adding) { flags.delete(flag); } else {
-    if (flag === 'segura')  flags.delete('revisar');
-    if (flag === 'revisar') flags.delete('segura');
-    flags.add(flag);
-  }
-  const newStatus = flags.size ? [...flags].join('|') : null;
-  const { error } = await db.from('preguntas').update({ status: newStatus }).eq('id', qId);
-  if (error) { console.error(error); return; }
-  q.status = newStatus;
-  const labels = { segura:'✅ Confirmada', revisar:'❓ Dudosa', ilegible:'✏️ Por corregir' };
-  logActivity(qId, adding ? `Marcó como ${labels[flag]}` : `Quitó ${labels[flag]}`, q.question?.substring(0,60));
-  render();
-}
-
-function setFlagFilter(val) {
-  flagFilter = val;
-  document.querySelectorAll('.qf-btn').forEach(b => b.classList.remove('active'));
-  const map = { null: 'qfAll', 'sin-rev': 'qfSinRev', segura: 'qfSegura', revisar: 'qfRevisar', ilegible: 'qfIlegible' };
-  document.getElementById(map[val] ?? 'qfAll').classList.add('active');
-  render();
-}
-
-function setAnswerFilter(val) {
-  answerFilter = val;
-  document.querySelectorAll('#answerFilters .qf-btn').forEach(b => b.classList.remove('active'));
-  const map = { null: 'qfAnsAll', 'has-answer': 'qfAnsCorrecta', 'has-my': 'qfAnsMiResp', 'sin-resp': 'qfAnsSinResp' };
-  document.getElementById(map[val] ?? 'qfAnsAll').classList.add('active');
-  render();
-}
-
-function toggleSidebarSection(headerEl) {
-  headerEl.closest('.sidebar-section').classList.toggle('collapsed');
-}
-
-function setAuditorUI(active) {
-  auditorMode = active;
-  const btn = document.getElementById('auditorBtn');
-  btn.classList.toggle('active', active);
-  btn.textContent = active ? '🚪 Salir auditor' : '🔑 Auditor';
-  document.getElementById('fabNew').classList.toggle('visible', active);
-  document.getElementById('ssEstado').classList.toggle('visible', active);
-  document.getElementById('ssRespuesta').classList.toggle('visible', active);
-  localStorage.setItem('odoo_auditor', active ? '1' : '0');
-}
-
-function handleEditClick(qId) {
-  if (auditorMode) {
-    openQuestionModal(questions.find(q => q.id === qId));
-  } else {
-    pendingEditId = qId;
-    document.getElementById('auditorModalMsg').textContent = 'Ingresa la contraseña de auditor para editar esta pregunta.';
-    document.getElementById('modalOverlay').classList.add('visible');
-    setTimeout(() => document.getElementById('auditorPass').focus(), 100);
-  }
-}
-
-function toggleAuditor() {
-  if (auditorMode) {
-    if (!confirm('¿Deseas salir del modo auditor?')) return;
-    setAuditorUI(false);
-    render();
-    return;
-  }
-  document.getElementById('modalOverlay').classList.add('visible');
-  setTimeout(() => document.getElementById('auditorPass').focus(), 100);
-}
-
-function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('visible');
-  document.getElementById('auditorPass').value = '';
-  document.getElementById('modalError').textContent = '';
-  document.getElementById('auditorModalMsg').textContent = 'Ingresa la contraseña para acceder al modo auditor.';
-  pendingEditId = null;
-}
-
-function checkPass() {
-  const val = document.getElementById('auditorPass').value;
-  if (val === AUDITOR_PASS) {
-    const editId = pendingEditId;
-    setAuditorUI(true);
-    closeModal();
-    if (mode !== 'study') setMode('study');
-    else render();
-    if (editId) {
-      openQuestionModal(questions.find(q => q.id === editId));
-    } else {
-      setFlagFilter('revisar');
-    }
-  } else {
-    document.getElementById('modalError').textContent = 'Contraseña incorrecta.';
-  }
-}
-
-// ─── QUESTION EDITOR ──────────────────────────────────────────────────────────
-
-let currentEditId = null;
-
-function openQuestionModal(q = null) {
-  currentEditId = q ? q.id : null;
-  document.getElementById('qModalTitle').textContent = q ? 'Editar pregunta' : 'Nueva pregunta';
-  document.getElementById('qSection').value   = q ? q.section         : '';
-  document.getElementById('qQuestion').value  = q ? q.question        : '';
-  document.getElementById('qOptA').value       = q ? q.options.A      : '';
-  document.getElementById('qOptB').value       = q ? q.options.B      : '';
-  document.getElementById('qOptC').value       = q ? q.options.C      : '';
-  document.getElementById('qModalError').textContent = '';
-  const ans = q ? q.answer : 'A';
-  document.querySelector(`input[name="qAnswer"][value="${ans}"]`).checked = true;
-  const myAns = q?.my_answer || '';
-  document.querySelector(`input[name="qMyAnswer"][value="${myAns}"]`).checked = true;
-  const prueba = q?.prueba || '';
-  document.querySelector(`input[name="qPrueba"][value="${prueba}"]`).checked = true;
-  document.getElementById('qDeleteBtn').style.display = q ? 'flex' : 'none';
-  document.getElementById('qModalOverlay').classList.add('visible');
-  setTimeout(() => document.getElementById('qSection').focus(), 100);
-}
-
-function closeQModal() {
-  document.getElementById('qModalOverlay').classList.remove('visible');
-}
-
-async function saveQuestion() {
-  const section  = document.getElementById('qSection').value.trim();
-  const question = document.getElementById('qQuestion').value.trim();
-  const optA     = document.getElementById('qOptA').value.trim();
-  const optB     = document.getElementById('qOptB').value.trim();
-  const optC     = document.getElementById('qOptC').value.trim();
-  const answer   = document.querySelector('input[name="qAnswer"]:checked')?.value;
-  const errEl    = document.getElementById('qModalError');
-
-  if (!section || !question || !optA || !optB || !optC) {
-    errEl.textContent = 'Completa sección, pregunta y las tres opciones.';
-    return;
-  }
-
-  const myAnswer = document.querySelector('input[name="qMyAnswer"]:checked')?.value || null;
-  const prueba   = document.querySelector('input[name="qPrueba"]:checked')?.value   || null;
-  const payload  = { section, question, options: { A: optA, B: optB, C: optC }, answer, my_answer: myAnswer || null, prueba: prueba || null };
-
-  if (currentEditId) {
-    const { error } = await db.from('preguntas').update(payload).eq('id', currentEditId);
-    if (error) { errEl.textContent = 'Error: ' + error.message; return; }
-    const idx = questions.findIndex(q => q.id === currentEditId);
-    if (idx !== -1) questions[idx] = { ...questions[idx], ...payload };
-  } else {
-    const { data, error } = await db.from('preguntas').insert(payload).select().single();
-    if (error) { errEl.textContent = 'Error: ' + error.message; return; }
-    questions.push(data);
-    document.getElementById('totalCount').textContent = questions.length;
-  }
-
-  const savedQ = questions.find(q => q.id === currentEditId);
-  logActivity(currentEditId || (questions.at(-1)?.id),
-    currentEditId ? 'Editó pregunta' : 'Creó nueva pregunta',
-    payload.question?.substring(0,60));
-  closeQModal();
-  render();
-}
-
-async function deleteQuestion() {
-  if (!currentEditId) return;
-  if (!confirm('¿Eliminar esta pregunta? Esta acción no se puede deshacer.')) return;
-  const q = questions.find(q => q.id === currentEditId);
-  const { error } = await db.from('preguntas').delete().eq('id', currentEditId);
-  if (error) { document.getElementById('qModalError').textContent = 'Error: ' + error.message; return; }
-  logActivity(null, 'Eliminó pregunta', q?.question?.substring(0,60));
-  questions = questions.filter(q => q.id !== currentEditId);
-  document.getElementById('totalCount').textContent = questions.length;
-  closeQModal();
-  render();
-}
-
-function showToast(msg) {
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  requestAnimationFrame(() => t.classList.add('visible'));
-  setTimeout(() => { t.classList.remove('visible'); setTimeout(() => t.remove(), 400); }, 4000);
-}
-
-async function migrateLocalFlags() {
-  const raw = localStorage.getItem('odoo_flags');
-  if (!raw) return 0;
-
-  let localFlags;
-  try { localFlags = JSON.parse(raw); } catch { localStorage.removeItem('odoo_flags'); return 0; }
-
-  const entries = Object.entries(localFlags).filter(([, v]) => v === 'segura' || v === 'revisar');
-  if (!entries.length) { localStorage.removeItem('odoo_flags'); return 0; }
-
-  const seguraIds  = entries.filter(([, v]) => v === 'segura').map(([k]) => parseInt(k));
-  const revisarIds = entries.filter(([, v]) => v === 'revisar').map(([k]) => parseInt(k));
-
-  const ops = [];
-  if (seguraIds.length)  ops.push(db.from('preguntas').update({ status: 'segura'  }).in('id', seguraIds));
-  if (revisarIds.length) ops.push(db.from('preguntas').update({ status: 'revisar' }).in('id', revisarIds));
-
-  const results = await Promise.all(ops);
-  const hasError = results.some(r => r.error);
-  if (hasError) { console.error('Error migrando flags'); return 0; }
-
-  // Actualizar el array local para que render() los muestre ya
-  entries.forEach(([id, status]) => {
-    const q = questions.find(q => q.id === parseInt(id));
-    if (q) q.status = status;
-  });
-
-  localStorage.removeItem('odoo_flags');
-  return entries.length;
-}
-
-async function setCorrectAnswer(questionId, newAnswer) {
-  const q = questions.find(q => q.id === questionId);
-  if (!q || q.answer === newAnswer) return;
-
-  const { error } = await db
-    .from('preguntas')
-    .update({ answer: newAnswer })
-    .eq('id', questionId);
-
-  if (error) {
-    alert('Error al guardar: ' + error.message);
-    return;
-  }
-
-  q.answer = newAnswer;
-  logActivity(questionId, `Cambió respuesta correcta → ${newAnswer}`, q.question?.substring(0,60));
-  render();
-}
-
-// ─── DRAG & DROP ──────────────────────────────────────────────────────────────
-
-function onDragStart(e, qId) {
-  dragSrcId = qId;
-  e.dataTransfer.effectAllowed = 'move';
-  setTimeout(() => e.target.closest('.q-card').classList.add('dragging'), 0);
-}
-
-function onDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  e.currentTarget.classList.add('drag-over');
-}
-
-function onDragLeave(e) {
-  e.currentTarget.classList.remove('drag-over');
-}
-
-function onDragEnd() {
-  document.querySelectorAll('.dragging, .drag-over').forEach(el =>
-    el.classList.remove('dragging', 'drag-over'));
-  dragSrcId = null;
-}
-
-async function onDrop(e, targetQId) {
-  e.preventDefault();
-  e.currentTarget.classList.remove('drag-over');
-  if (!dragSrcId || dragSrcId === targetQId) return;
-
-  const srcIdx    = questions.findIndex(q => q.id === dragSrcId);
-  const targetIdx = questions.findIndex(q => q.id === targetQId);
-  if (srcIdx === -1 || targetIdx === -1) return;
-
-  const [moved] = questions.splice(srcIdx, 1);
-  questions.splice(targetIdx, 0, moved);
-
-  // Reasignar sort_order y guardar solo los que cambiaron
-  const updates = [];
-  questions.forEach((q, i) => {
-    const newOrder = i + 1;
-    if (q.sort_order !== newOrder) {
-      q.sort_order = newOrder;
-      updates.push(db.from('preguntas').update({ sort_order: newOrder }).eq('id', q.id));
-    }
-  });
-
-  render();
-  await Promise.all(updates);
-}
-
-async function init() {
-  questionsList.innerHTML = '<div class="empty"><div class="emoji">⏳</div><p>Cargando preguntas...</p></div>';
-
-  const { data, error } = await db
-    .from('preguntas')
-    .select('*')
-    .order('sort_order', { nullsFirst: false });
-
-  if (error) {
-    questionsList.innerHTML = `<div class="empty"><div class="emoji">❌</div><p>Error al cargar: ${error.message}</p></div>`;
-    return;
-  }
-
-  questions = data;
-
-  const migrated = await migrateLocalFlags();
-  if (migrated > 0) showToast(`✅ ${migrated} marcas sincronizadas con la base de datos.`);
-
-  const sections = [...new Set(questions.map(q => q.section))];
-  document.getElementById('totalCount').textContent = questions.length;
-  document.getElementById('sectionCount').textContent = sections.length;
-
-  const sel = document.getElementById('sectionFilter');
-  sections.forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s; opt.textContent = s;
-    sel.appendChild(opt);
-  });
-
-  const tabs = document.getElementById('sectionTabs');
-  const allTab = document.createElement('button');
-  allTab.className = 'tab active'; allTab.textContent = 'Todas';
-  allTab.onclick = () => filterBySection('all', allTab);
-  tabs.appendChild(allTab);
-
-  sections.forEach(s => {
-    const count = questions.filter(q => q.section === s).length;
-    const t = document.createElement('button');
-    t.className = 'tab';
-    t.innerHTML = `${s} <span class="tab-count">${count}</span>`;
-    t.onclick = () => filterBySection(s, t);
-    tabs.appendChild(t);
-  });
-
-  document.getElementById('searchInput').addEventListener('input', e => {
-    searchTerm = e.target.value.toLowerCase();
-    document.getElementById('searchClear').classList.toggle('visible', !!e.target.value);
-    render();
-  });
-  document.getElementById('sectionFilter').addEventListener('change', e => {
-    activeSection = e.target.value || 'all';
-    updateTabs();
-    render();
-  });
-
-  const dl = document.getElementById('sectionList');
-  sections.forEach(s => {
-    const opt = document.createElement('option');
-    opt.value = s;
-    dl.appendChild(opt);
-  });
-
-  buildPruebaFilters();
-
-  if (localStorage.getItem('odoo_auditor') === '1') {
-    setAuditorUI(true);
-  }
-
-  // Poblar selector de prueba en examen
-  const examSel = document.getElementById('examPruebaSelect');
-  const pruebas = [...new Set(questions.map(q => q.prueba).filter(Boolean))].sort();
-  examSel.innerHTML = '<option value="">Todas las preguntas</option>';
-  pruebas.forEach(p => {
-    const o = document.createElement('option');
-    o.value = p; o.textContent = p.replace('prueba', 'Prueba ');
-    examSel.appendChild(o);
-  });
-  examSel.addEventListener('change', updateExamSetupCount);
-
-  render();
-}
-
-function filterBySection(sec, tab) {
-  activeSection = sec;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  tab.classList.add('active');
-  document.getElementById('sectionFilter').value = sec === 'all' ? '' : sec;
-  render();
-}
-
-function updateTabs() {
-  document.querySelectorAll('.tab').forEach(t => {
-    const isAll = t.textContent === 'Todas' && activeSection === 'all';
-    t.classList.toggle('active', isAll || t.textContent === activeSection);
-  });
-}
-
-function setMode(m) {
-  mode = m;
-  clearInterval(examTimer);
-
-  ['btnStudy','btnPractice','btnExam'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.classList.remove('active');
-  });
-  const btnMap = { study:'btnStudy', practice:'btnPractice', exam:'btnExam' };
-  const btn = document.getElementById(btnMap[m]);
-  if (btn) btn.classList.add('active');
-
-  const isActive = m === 'practice' || m === 'exam';
-  document.getElementById('shuffleBtn').style.display = isActive ? 'flex' : 'none';
-  document.getElementById('examSetup').style.display    = m === 'exam' ? 'block' : 'none';
-  document.getElementById('examTimerBar').style.display = 'none';
-  document.getElementById('sectionStatsPanel').style.display = 'none';
-
-  if (m === 'practice') {
-    answered = {}; revealed = {}; examSubmitted = false;
-    if (shuffleEnabled) shuffledIds = shuffle(questions.map(q => q.id));
-    document.getElementById('progressBar').style.display = 'block';
-    document.getElementById('scorePanel').classList.remove('visible');
-    updateScore();
-  } else if (m === 'exam') {
-    answered = {}; revealed = {}; examSubmitted = false;
-    document.getElementById('progressBar').style.display = 'none';
-    document.getElementById('scorePanel').classList.remove('visible');
-    updateExamSetupCount();
-  } else {
-    shuffleEnabled = false;
-    document.getElementById('shuffleBtn').classList.remove('active');
-    document.getElementById('progressBar').style.display = 'none';
-    document.getElementById('scorePanel').classList.remove('visible');
-  }
-
-  expandedIds.clear();
-  document.querySelectorAll('.q-card').forEach(c => c.classList.remove('expanded'));
-  render();
-}
-
-function updateScore() {
-  const filtered = getFiltered();
-  const total = filtered.length;
-  const ans  = Object.keys(answered).length;
-  const corr = Object.values(answered).filter(v => v).length;
-  document.getElementById('answeredCount').textContent = ans;
-  document.getElementById('correctCount').textContent  = corr;
-
-  if (mode === 'practice') {
-    const pct = total ? Math.round(ans / total * 100) : 0;
-    document.getElementById('progressFill').style.width = pct + '%';
-
-    if (ans >= total && total > 0) {
-      const score = Math.round(corr / total * 100);
-      const panel = document.getElementById('scorePanel');
-      const big   = document.getElementById('scoreBig');
-      panel.classList.add('visible');
-      big.textContent  = score + '%';
-      big.className    = 'score-big ' + (score >= 70 ? 'good' : score >= 50 ? 'ok' : 'bad');
-      document.getElementById('scoreText').textContent = `${corr} correctas de ${total} · ${score >= 70 ? '✅ Aprobado' : '❌ Reprueba'}`;
-      renderSectionStats();
-      const duration = Math.round((Date.now() - (examStartTs || Date.now())) / 1000);
-      saveSession('practice', '', duration);
-    }
-  }
-}
-
-function getFiltered() {
-  return questions.filter(q => {
-    const secOk = activeSection === 'all' || q.section === activeSection;
-    const searchOk = !searchTerm ||
-      q.question.toLowerCase().includes(searchTerm) ||
-      Object.values(q.options).some(o => o.toLowerCase().includes(searchTerm));
-    const flagOk   = !flagFilter
-      ? true
-      : flagFilter === 'sin-rev'
-        ? getQFlags(q).size === 0
-        : getQFlags(q).has(flagFilter);
-    const pruebaOk = !pruebaFilter
-      ? true
-      : pruebaFilter === 'sin' ? !q.prueba
-      : pruebaFilter === 'con' ? !!q.prueba
-      : q.prueba === pruebaFilter;
-    const answerOk = !answerFilter
-      ? true
-      : answerFilter === 'has-answer' ? !!q.answer
-      : answerFilter === 'has-my'     ? !!q.my_answer
-      : !q.answer && !q.my_answer;
-    return secOk && searchOk && flagOk && pruebaOk && answerOk;
-  }).sort((a, b) => {
-    if (!shuffleEnabled || shuffledIds.length === 0) return 0;
-    const ai = shuffledIds.indexOf(a.id);
-    const bi = shuffledIds.indexOf(b.id);
-    if (ai === -1 && bi === -1) return 0;
-    if (ai === -1) return 1;
-    if (bi === -1) return -1;
-    return ai - bi;
-  });
-}
-
-function render() {
-  const filtered = getFiltered();
-  const list = document.getElementById('questionsList');
-  document.getElementById('resultCount').innerHTML =
-    `Mostrando <span>${filtered.length}</span> de <span>${questions.length}</span> preguntas`;
-
-  const hf = f => questions.filter(q => getQFlags(q).has(f)).length;
-  document.getElementById('qfAllCount').textContent     = questions.length ? `(${questions.length})` : '';
-  document.getElementById('qfSinRevCount').textContent   = questions.filter(q => getQFlags(q).size === 0).length;
-  document.getElementById('qfSeguraCount').textContent   = hf('segura');
-  document.getElementById('qfRevisarCount').textContent  = hf('revisar');
-  document.getElementById('qfIlegibleCount').textContent = hf('ilegible');
-
-  document.getElementById('qfAnsAllCount').textContent      = questions.length ? `(${questions.length})` : '';
-  document.getElementById('qfAnsCorrectaCount').textContent = questions.filter(q => !!q.answer).length;
-  document.getElementById('qfAnsMiRespCount').textContent   = questions.filter(q => !!q.my_answer).length;
-  document.getElementById('qfAnsSinRespCount').textContent  = questions.filter(q => !q.answer && !q.my_answer).length;
-
-  const pruebas = [...new Set(questions.map(q => q.prueba).filter(Boolean))];
-  pruebas.forEach(p => {
-    const el = document.getElementById(`pfCount_${p}`);
-    if (el) el.textContent = questions.filter(q => q.prueba === p).length;
-  });
-  const conEl = document.getElementById('pfCount_con');
-  if (conEl) conEl.textContent = questions.filter(q => !!q.prueba).length;
-  const sinEl = document.getElementById('pfCount_sin');
-  if (sinEl) sinEl.textContent = questions.filter(q => !q.prueba).length;
-
-  if (filtered.length === 0) {
-    list.innerHTML = '<div class="empty"><div class="emoji">🔍</div><p>No se encontraron preguntas.</p></div>';
-    return;
-  }
-
-  list.innerHTML = '';
-  filtered.forEach((q, fi) => {
-    const globalIdx = questions.indexOf(q);
-    const qFlags = getQFlags(q);
-    const card = document.createElement('div');
-    const flagCls = [...qFlags].map(f => `flag-${f}`).join(' ');
-    card.className = ['q-card', mode === 'practice' ? 'practice-mode' : '', flagCls].filter(Boolean).join(' ');
-    card.dataset.qid = q.id;
-
-    const optKeys = Object.keys(q.options);
-    let optHtml = '';
-    optKeys.forEach(key => {
-      const isCorrect = key === q.answer;
-      const wasAnswered = answered[globalIdx] !== undefined;
-      const wasSelected = revealed[globalIdx] === key;
-
-      const isMyAnswer   = auditorMode && mode === 'study' && q.my_answer === key;
-      const examRevealed = mode === 'exam' && examSubmitted;
-
-      let cls = 'option';
-      if (mode === 'study' && isCorrect)    cls += ' correct';
-      if (mode === 'study' && isMyAnswer && auditorMode) cls += ' my-answer';
-      if (auditorMode && mode === 'study')  cls += ' auditor-option';
-      if ((mode === 'practice' || examRevealed) && wasAnswered) {
-        if (wasSelected && isCorrect)       cls += ' selected-correct';
-        else if (wasSelected && !isCorrect) cls += ' selected-wrong';
-        else if (isCorrect)                 cls += ' correct';
-      }
-      if (mode === 'exam' && !examSubmitted && !wasSelected) cls += ' exam-option';
-      if (mode === 'exam' && !examSubmitted && wasSelected)  cls += ' exam-selected';
-
-      let rightHtml = '';
-      const pruebaLabel = q.prueba ? `<span class="prueba-badge ${q.prueba}">${q.prueba === 'prueba1' ? 'P1' : 'P2'}</span>` : '';
-
-      if (auditorMode && mode === 'study') {
-        rightHtml = `<div class="opt-actions">
-          ${isCorrect
-            ? `<span class="correct-badge">✓ Correcta</span>`
-            : `<button class="set-correct-btn" onclick="event.stopPropagation(); setCorrectAnswer(${q.id}, '${key}')">✓ Correcta</button>`}
-          <button class="set-my-btn ${q.my_answer === key ? 'active' : ''}" onclick="event.stopPropagation(); setMyAnswer(${q.id}, '${key}', event)">📌 Mi resp.</button>
-        </div>`;
-      } else if (mode === 'study') {
-        const badges = [];
-        if (isCorrect) {
-          badges.push('<span class="correct-badge">✓ Correcta</span>');
-        }
-        if (isMyAnswer && auditorMode) {
-          badges.push('<span class="my-answer-badge">📌 Mi resp.</span>');
-        }
-        if (badges.length) rightHtml = `<div class="opt-actions">${badges.join('')}</div>`;
-      }
-
-      optHtml += `
-        <div class="${cls}" onclick="selectOption(${globalIdx}, '${key}', this)">
-          <div class="opt-letter">${key}</div>
-          <div class="opt-text">${q.options[key]}</div>
-          ${rightHtml}
-        </div>`;
-    });
-
-    card.setAttribute('ondragover',  'onDragOver(event)');
-    card.setAttribute('ondragleave', 'onDragLeave(event)');
-    card.setAttribute('ondrop',      `onDrop(event, ${q.id})`);
-    card.setAttribute('ondragend',   'onDragEnd()');
-
-    card.innerHTML = `
-      <div class="q-header" onclick="toggleCard(this.parentElement)">
-        <div class="drag-handle" draggable="true" ondragstart="onDragStart(event, ${q.id})" onclick="event.stopPropagation()" title="Arrastrar para reordenar">⠿</div>
-        <div class="q-num">${fi + 1}</div>
-        <div class="q-meta">
-          <div class="q-section">
-            ${auditorMode
-              ? `<span class="section-label editable" title="Clic para editar sección" onclick="event.stopPropagation(); editSection(${q.id}, this)">${q.section}</span>`
-              : q.section}
-            ${q.prueba ? `<span class="prueba-tag ${q.prueba}">${q.prueba.replace('prueba','Prueba ')}</span>` : ''}
-            ${q.modified_by ? `<span class="modified-by-badge" title="${q.modified_by} · ${timeAgo(q.modified_at)}">${getInitials(q.modified_by)}</span>` : ''}
-          </div>
-          <div class="q-text">${q.question}</div>
-        </div>
-        <div class="flag-btns">
-          ${auditorMode ? `
-          <button class="flag-btn ${qFlags.has('segura') ? 'active' : ''}" title="Segura" onclick="setFlag(${q.id}, 'segura', event)">✅</button>
-          <button class="flag-btn ${qFlags.has('revisar') ? 'active' : ''}" title="A revisar" onclick="setFlag(${q.id}, 'revisar', event)">🔍</button>
-          <button class="flag-btn ilegible-btn ${qFlags.has('ilegible') ? 'active' : ''}" title="Ilegible" onclick="setFlag(${q.id}, 'ilegible', event)">⚠️</button>
-          ${[...new Set(questions.map(r => r.prueba).filter(Boolean))].sort().map((p,i) => {
-              const label = 'P'+(i+1);
-              const cls   = `pcolor-${i+1}`;
-              return `<button class="flag-btn prueba-btn ${q.prueba === p ? `active ${cls}` : ''}" title="${p.replace('prueba','Prueba ')}" onclick="event.stopPropagation(); setPrueba(${q.id}, '${p}', event)">${label}</button>`;
-            }).join('')}
-          <button class="flag-btn edit-btn" title="Editar pregunta" onclick="event.stopPropagation(); handleEditClick(${q.id})">✏️</button>
-          ` : ''}
-          ${mode === 'exam' && !examSubmitted
-            ? `<button class="flag-btn exam-flag-btn ${examFlagged.has(globalIdx) ? 'flagged' : ''}" title="Marcar para revisión" onclick="event.stopPropagation(); toggleExamFlag(${globalIdx})">🚩</button>`
-            : ''}
-        </div>
-        <div class="q-toggle">+</div>
-      </div>
-      <div class="q-body">
-        <div class="options-list">${optHtml}</div>
-        ${mode === 'exam' && examSubmitted && examFlagged.has(globalIdx)
-          ? '<div class="exam-flagged-badge">🚩 Marcada para revisión</div>'
-          : ''}
-      </div>`;
-
-    if (expandedIds.has(q.id)) card.classList.add('expanded');
-    list.appendChild(card);
-  });
-}
-
-function highlight(text, term) {
-  if (!term || term.length < 2) return text;
-  const re = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-  return text.replace(re, '<mark>$1</mark>');
-}
-
-function toggleCard(card) {
-  const wasExpanded = card.classList.contains('expanded');
-  document.querySelectorAll('.q-card.expanded').forEach(c => {
-    expandedIds.delete(+c.dataset.qid);
-    c.classList.remove('expanded');
-  });
-  if (!wasExpanded) {
-    card.classList.add('expanded');
-    expandedIds.add(+card.dataset.qid);
-    setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
-  }
-}
-
-function selectOption(idx, key, el) {
-  if (mode !== 'practice' && !(mode === 'exam' && !examSubmitted)) return;
-  if (answered[idx] !== undefined && mode !== 'exam') return;
-  if (mode === 'exam' && examSubmitted) return;
-
-  const q = questions[idx];
-  const isCorrect = key === q.answer;
-  answered[idx] = isCorrect;
-  revealed[idx] = key;
-
-  const card = el.closest('.q-card');
-  const optEls = card.querySelectorAll('.option');
-  const optKeys = Object.keys(q.options);
-
-  if (mode === 'exam') {
-    optEls.forEach((opt, i) => {
-      opt.classList.remove('exam-selected');
-      opt.classList.add('exam-option');
-      if (optKeys[i] === key) {
-        opt.classList.add('exam-selected');
-        opt.classList.remove('exam-option');
-      }
-    });
-    updateExamProgress();
-  } else {
-    optEls.forEach((opt, i) => {
-      const optKey = optKeys[i];
-      opt.classList.remove('selected-correct', 'selected-wrong', 'correct');
-      if (optKey === key && isCorrect) opt.classList.add('selected-correct');
-      else if (optKey === key && !isCorrect) opt.classList.add('selected-wrong');
-      else if (optKey === q.answer) opt.classList.add('correct');
-    });
-    updateScore();
-  }
-}
-
-init();
-</script>
+<script src="app.js"></script>
 </body>
 </html>

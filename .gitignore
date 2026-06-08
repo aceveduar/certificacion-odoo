@@ -1,10 +1,13 @@
 # Excluir todo por defecto
 *
 
-# Incluir solo archivos HTML y CSS
+# Incluir archivos HTML, CSS, JS, SQL y Markdown
 !*.html
 !*.css
 !*.htm
+!*.js
+!*.sql
+!*.md
 
 # Incluir carpetas necesarias (para que Git pueda entrar)
 !*/
