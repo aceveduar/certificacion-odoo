@@ -1664,6 +1664,12 @@ body:has(.modal-overlay.visible) .fab { display: none; }
   .controls-row1 { flex-direction: column; gap: 8px; }
   .controls-row2 { gap: 6px; flex-wrap: wrap; }
   .auditor-tools-btn { width: 36px; height: 36px; }
+  .auditor-tools-menu {
+    right: auto; left: 50%;
+    transform: translateX(-50%);
+    width: max-content; max-width: calc(100vw - 32px);
+    min-width: 0;
+  }
   .auditor-btn   { font-size: 12px; padding: 9px 12px; }
   .theme-btn     { width: 36px; height: 36px; }
 
