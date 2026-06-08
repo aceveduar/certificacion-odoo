@@ -3,7 +3,10 @@
     "allow": [
       "WebSearch",
       "WebFetch(domain:www.odoo.com)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(osascript -l JavaScript -e ' *)"
     ]
   }
 }
