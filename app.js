@@ -1417,7 +1417,7 @@ function setMode(m) {
     document.getElementById('scorePanel').classList.remove('visible');
     updateScore();
   } else if (m === 'exam') {
-    answered = {}; revealed = {}; examSubmitted = false;
+    answered = {}; revealed = {}; examSubmitted = false; examStartTs = null;
     document.getElementById('progressBar').style.display = 'none';
     document.getElementById('scorePanel').classList.remove('visible');
     renderExamSetup();
@@ -1560,8 +1560,8 @@ function render() {
         else if (wasSelected && !isCorrect) cls += ' selected-wrong';
         else if (isCorrect)                 cls += ' correct';
       }
-      if (mode === 'exam' && !examSubmitted && !wasSelected) cls += ' exam-option';
-      if (mode === 'exam' && !examSubmitted && wasSelected)  cls += ' exam-selected';
+      if (mode === 'exam' && !examSubmitted && examStartTs && !wasSelected) cls += ' exam-option';
+      if (mode === 'exam' && !examSubmitted && examStartTs && wasSelected)  cls += ' exam-selected';
 
       let rightHtml = '';
 
@@ -1629,7 +1629,7 @@ function render() {
           <span class="flag-divider"></span>
           <button class="flag-btn edit-btn" title="Editar pregunta" onclick="event.stopPropagation(); handleEditClick(${q.id})">✏️</button>
           ` : ''}
-          ${mode === 'exam' && !examSubmitted
+          ${mode === 'exam' && !examSubmitted && examStartTs
             ? `<button class="flag-btn exam-flag-btn ${examFlagged.has(globalIdx) ? 'flagged' : ''}" title="Marcar para revisión" onclick="event.stopPropagation(); toggleExamFlag(${globalIdx})">🚩</button>`
             : ''}
         </div>
@@ -1667,7 +1667,7 @@ function toggleCard(card) {
 }
 
 function selectOption(idx, key, el) {
-  if (mode !== 'practice' && !(mode === 'exam' && !examSubmitted)) return;
+  if (mode !== 'practice' && !(mode === 'exam' && !examSubmitted && examStartTs)) return;
   if (answered[idx] !== undefined && mode !== 'exam') return;
   if (mode === 'exam' && examSubmitted) return;
 
