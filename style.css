@@ -756,13 +756,6 @@ body.exam-setup-browse .topbar-stats { display: none; }
   box-shadow: var(--shadow-sm);
   position: relative;
 }
-.q-card::after {
-  content: '';
-  position: absolute; top: 0; left: 0;
-  width: 3px; height: 100%;
-  background: transparent;
-  transition: background var(--transition);
-}
 .q-card:hover {
   border-color: var(--border2);
   box-shadow: var(--shadow-md);
@@ -771,9 +764,6 @@ body.exam-setup-browse .topbar-stats { display: none; }
 .q-card.expanded {
   border-color: rgba(124,92,252,0.4);
   box-shadow: 0 4px 24px rgba(124,92,252,0.12);
-}
-.q-card.expanded::after {
-  background: linear-gradient(180deg, var(--accent), var(--accent2));
 }
 .q-card.flag-segura  { border-left: 3px solid var(--green); }
 .q-card.flag-revisar { border-left: 3px solid var(--yellow); }
