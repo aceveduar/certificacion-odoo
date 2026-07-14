@@ -1377,6 +1377,7 @@ body.exam-setup-browse .topbar-stats { display: none; }
 
 .exam-config-divider { height: 1px; background: var(--border); margin: 10px 0; }
 .exam-config-row { align-items: center; justify-content: space-between; }
+.exam-config-numbers { display: flex; align-items: center; gap: 20px; flex-shrink: 0; }
 .exam-config-row-full .exam-config-toggle span { color: var(--accent2); font-weight: 700; }
 .exam-config-toggle {
   display: flex; align-items: center; gap: 10px;
@@ -1828,7 +1829,19 @@ body:has(.modal-overlay.visible) .fab { display: none; }
     flex-direction: column; align-items: stretch; gap: 8px;
   }
   .exam-config-toggle span { white-space: normal; }
-  .exam-config-duration, .exam-config-pool { justify-content: flex-end; }
+  /* Duración y pool antes eran dos filas apiladas, cada una alineada a la
+     derecha por su cuenta — quedaban desalineadas y la tarjeta se veía más
+     alta de lo necesario. Ahora son dos columnas de ancho fijo (mitad y
+     mitad) para que SIEMPRE queden lado a lado sin importar el dispositivo
+     o la fuente — con flex-wrap, si el texto no cabía por poco, envolvía
+     igual y perdía el ahorro de espacio. El texto que no quepa en su
+     columna se recorta con "…" en vez de forzar otra línea.  */
+  .exam-config-numbers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .exam-config-duration, .exam-config-pool { justify-content: flex-start; min-width: 0; gap: 4px; }
+  .exam-config-pool input[type="number"] { width: 64px; padding: 6px 2px; flex-shrink: 0; }
+  .exam-config-duration span, .exam-config-pool span {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
 
   .quick-filters, .prueba-filters { gap: 5px; margin-bottom: 10px; }
   .track-btn { font-size: 12px; padding: 8px 10px; min-width: 0; }
@@ -1960,6 +1973,17 @@ body:has(.modal-overlay.visible) .fab { display: none; }
   border-radius: 8px;
   display: inline-block;
 }
+
+.reveal-answer-btn {
+  margin-top: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 10px;
+  border: 1px dashed var(--border2); border-radius: var(--radius-sm);
+  background: var(--surface3); color: var(--text2);
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all var(--transition);
+}
+.reveal-answer-btn:hover { border-color: var(--accent); color: var(--accent2); background: var(--accent-glow); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    EXAM RESULTS MODAL

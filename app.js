@@ -214,6 +214,15 @@ let searchTerm = '';
 let answered    = {};
 let revealed    = {};
 let expandedIds  = new Set();
+// Ids de preguntas donde un usuario normal ya pidió ver la respuesta en
+// Estudio — antes de esto, se mostraba resaltada la opción correcta desde
+// que cargaba la pregunta, lo que permitía memorizar sin investigar.
+let studyRevealed = new Set();
+
+function revealStudyAnswer(qId) {
+  studyRevealed.add(qId);
+  render();
+}
 let dragSrcId    = null;
 
 // ── SHUFFLE ──────────────────────────────────────────
@@ -747,19 +756,21 @@ function renderExamConfigList() {
       <input type="checkbox" ${fullCfg ? 'checked' : ''} onchange="toggleExamConfig('${FULL_EXAM_SECTION}', this.checked)">
       <span>🌐 Examen completo · secciones del track activo</span>
     </label>
-    <div class="exam-config-duration">
-      <input type="number" min="5" max="240" step="5"
-             value="${fullCfg ? fullCfg.duration_minutes : 90}"
-             ${fullCfg ? '' : 'disabled'}
-             onchange="updateExamConfigDuration('${FULL_EXAM_SECTION}', this.value)">
-      <span>min</span>
-    </div>
-    <div class="exam-config-pool">
-      <input type="number" min="1" max="${fullTotal}" placeholder="Todas"
-             value="${fullCfg?.pool_size ?? ''}"
-             ${fullCfg ? '' : 'disabled'}
-             onchange="updateExamConfigPoolSize('${FULL_EXAM_SECTION}', this.value)">
-      <span>de ${fullTotal} preguntas</span>
+    <div class="exam-config-numbers">
+      <div class="exam-config-duration">
+        <input type="number" min="5" max="240" step="5"
+               value="${fullCfg ? fullCfg.duration_minutes : 90}"
+               ${fullCfg ? '' : 'disabled'}
+               onchange="updateExamConfigDuration('${FULL_EXAM_SECTION}', this.value)">
+        <span>min</span>
+      </div>
+      <div class="exam-config-pool">
+        <input type="number" min="1" max="${fullTotal}" placeholder="Todas"
+               value="${fullCfg?.pool_size ?? ''}"
+               ${fullCfg ? '' : 'disabled'}
+               onchange="updateExamConfigPoolSize('${FULL_EXAM_SECTION}', this.value)">
+        <span title="${fullTotal} preguntas disponibles">/ ${fullTotal}</span>
+      </div>
     </div>
   </div>`;
 
@@ -772,19 +783,21 @@ function renderExamConfigList() {
         <input type="checkbox" ${cfg ? 'checked' : ''} onchange="toggleExamConfig('${safeSection}', this.checked)">
         <span>${section}</span>
       </label>
-      <div class="exam-config-duration">
-        <input type="number" min="5" max="240" step="5"
-               value="${cfg ? cfg.duration_minutes : 30}"
-               ${cfg ? '' : 'disabled'}
-               onchange="updateExamConfigDuration('${safeSection}', this.value)">
-        <span>min</span>
-      </div>
-      <div class="exam-config-pool">
-        <input type="number" min="1" max="${total}" placeholder="Todas"
-               value="${cfg?.pool_size ?? ''}"
-               ${cfg ? '' : 'disabled'}
-               onchange="updateExamConfigPoolSize('${safeSection}', this.value)">
-        <span>de ${total} preguntas</span>
+      <div class="exam-config-numbers">
+        <div class="exam-config-duration">
+          <input type="number" min="5" max="240" step="5"
+                 value="${cfg ? cfg.duration_minutes : 30}"
+                 ${cfg ? '' : 'disabled'}
+                 onchange="updateExamConfigDuration('${safeSection}', this.value)">
+          <span>min</span>
+        </div>
+        <div class="exam-config-pool">
+          <input type="number" min="1" max="${total}" placeholder="Todas"
+                 value="${cfg?.pool_size ?? ''}"
+                 ${cfg ? '' : 'disabled'}
+                 onchange="updateExamConfigPoolSize('${safeSection}', this.value)">
+          <span title="${total} preguntas disponibles">/ ${total}</span>
+        </div>
       </div>
     </div>`;
   };
@@ -2134,6 +2147,7 @@ function render() {
     const flagCls = auditorMode ? [...qFlags].map(f => `flag-${f}`).join(' ') : '';
     card.className = ['q-card', mode === 'practice' ? 'practice-mode' : '', flagCls].filter(Boolean).join(' ');
     card.dataset.qid = q.id;
+    const studyAnswerShown = auditorMode || studyRevealed.has(q.id);
 
     const optKeys = Object.keys(q.options);
     let optHtml = '';
@@ -2146,7 +2160,7 @@ function render() {
       const examRevealed = mode === 'exam' && examSubmitted;
 
       let cls = 'option';
-      if (mode === 'study' && isCorrect)    cls += ' correct';
+      if (mode === 'study' && isCorrect && studyAnswerShown) cls += ' correct';
       if (mode === 'study' && isMyAnswer && auditorMode) cls += ' my-answer';
       if (auditorMode && mode === 'study')  cls += ' auditor-option';
       if ((mode === 'practice' || examRevealed) && wasAnswered) {
@@ -2168,7 +2182,7 @@ function render() {
         </div>`;
       } else if (mode === 'study') {
         const badges = [];
-        if (isCorrect) {
+        if (isCorrect && studyAnswerShown) {
           badges.push('<span class="correct-badge">✓ Correcta</span>');
         }
         if (isMyAnswer && auditorMode) {
@@ -2216,6 +2230,9 @@ function render() {
       </div>
       <div class="q-body">
         <div class="options-list">${optHtml}</div>
+        ${mode === 'study' && !auditorMode && !studyAnswerShown
+          ? `<button class="reveal-answer-btn" onclick="event.stopPropagation(); revealStudyAnswer(${q.id})">👁 Ver respuesta</button>`
+          : ''}
         ${mode === 'exam' && examSubmitted && examFlagged.has(globalIdx)
           ? '<div class="exam-flagged-badge">🚩 Marcada para revisión</div>'
           : ''}
