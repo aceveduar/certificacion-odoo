@@ -604,9 +604,10 @@ mark {
 
 .auditor-tools-menu {
   display: none;
-  position: absolute; top: calc(100% + 8px); right: 0;
+  position: fixed;
   flex-direction: column; gap: 4px;
   min-width: 230px;
+  max-width: calc(100vw - 32px);
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-md); padding: 8px;
   box-shadow: var(--shadow-md);
@@ -628,6 +629,12 @@ mark {
 }
 .auditor-menu-item:hover { background: var(--surface2); border-color: var(--border); }
 .auditor-menu-item.active { background: rgba(192,132,252,0.12); border-color: var(--accent2); color: var(--accent2); }
+.auditor-menu-group-label {
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 6px 12px 2px;
+}
+.auditor-menu-divider { height: 1px; background: var(--border); margin: 4px 6px; }
 
 .theme-btn {
   width: 40px; height: 40px;
@@ -644,6 +651,40 @@ mark {
 /* ═══════════════════════════════════════════════════════════════════════════
    FILTROS RÁPIDOS & PRUEBA
 ═══════════════════════════════════════════════════════════════════════════ */
+.track-switcher {
+  background: var(--accent-glow);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 16px;
+}
+.track-switcher-label {
+  font-size: 11px; font-weight: 700; color: var(--accent2);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.track-switcher-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.track-btn {
+  flex: 1; min-width: 110px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  font-size: 13px; font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.track-btn:hover { border-color: var(--accent2); color: var(--text); }
+.track-btn.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(124,92,252,0.35);
+}
+
 .quick-filters, .prueba-filters {
   display: flex; gap: 7px; flex-wrap: wrap;
   margin-bottom: 12px;
@@ -873,6 +914,43 @@ body.exam-setup-browse .topbar-stats { display: none; }
 .ilegible-btn.active { opacity: 1; }
 .edit-btn { opacity: 0.35; }
 .edit-btn:hover { opacity: 1 !important; }
+
+.card-menu-btn {
+  width: 28px; height: 28px;
+  border-radius: 7px; border: 1px solid var(--border);
+  background: var(--surface3); cursor: pointer;
+  color: var(--text2); font-size: 16px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition); padding: 0;
+}
+.card-menu-btn:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(192,132,252,0.1); }
+
+.card-actions-menu {
+  position: absolute;
+  min-width: 220px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 10px;
+  box-shadow: var(--shadow-md);
+  z-index: 70;
+}
+.cam-label {
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 2px 2px 6px;
+}
+.cam-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+.cam-row .flag-btn { width: auto; height: auto; padding: 6px 9px; font-size: 12px; opacity: 0.85; border: 1px solid var(--border); }
+.cam-row .flag-btn:hover, .cam-row .flag-btn.active { opacity: 1; }
+.cam-divider { height: 1px; background: var(--border); margin: 6px 2px; }
+.cam-edit-btn {
+  width: 100%; text-align: left;
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  border: 1px solid transparent; background: transparent;
+  color: var(--text); font-size: 13px; font-weight: 500;
+  font-family: 'Inter', sans-serif; cursor: pointer;
+  transition: all var(--transition);
+}
+.cam-edit-btn:hover { background: var(--surface2); border-color: var(--border); }
 
 .prueba-btn {
   font-size: 9px !important; font-weight: 800 !important;
@@ -1217,6 +1295,25 @@ body.exam-setup-browse .topbar-stats { display: none; }
 }
 .exam-config-bulk-actions button:hover { background: rgba(192,132,252,0.12); }
 
+.bulk-delete-filters {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 12px; margin-bottom: 16px;
+}
+.bd-filter { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.bd-filter .form-label { margin: 0; }
+.bd-filter .form-input { min-width: 0; }
+@media (max-width: 640px) {
+  .bulk-delete-filters { grid-template-columns: repeat(2, 1fr); }
+}
+
+.bulk-edit-action {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-top: 14px;
+}
+@media (max-width: 640px) {
+  .bulk-edit-action { grid-template-columns: 1fr; }
+}
+
 .import-body {
   flex: 1; min-height: 0; overflow-y: auto;
   display: flex; flex-direction: column;
@@ -1299,6 +1396,24 @@ body.exam-setup-browse .topbar-stats { display: none; }
   text-align: center;
 }
 .exam-config-duration input[type="number"]:disabled { opacity: 0.4; cursor: not-allowed; }
+.exam-config-pool {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--muted);
+}
+.exam-config-pool input[type="number"] {
+  width: 70px; padding: 6px 8px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--text);
+  font-family: 'Inter', sans-serif; font-size: 13px;
+  text-align: center;
+}
+.exam-config-pool input[type="number"]:disabled { opacity: 0.4; cursor: not-allowed; }
+.exam-config-group-label {
+  font-size: 12px; font-weight: 700; color: var(--accent2);
+  text-transform: uppercase; letter-spacing: 0.04em;
+  margin: 14px 0 6px;
+}
+.exam-config-group-label:first-child { margin-top: 0; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    EXAM TIMER BAR
@@ -1682,14 +1797,24 @@ body:has(.modal-overlay.visible) .fab { display: none; }
   .controls-row1 { flex-direction: column; gap: 8px; }
   .controls-row2 { gap: 6px; flex-wrap: wrap; }
   .auditor-tools-btn { width: 36px; height: 36px; }
-  .auditor-tools-menu {
-    right: auto; left: 50%;
-    transform: translateX(-50%);
-    width: max-content; max-width: calc(100vw - 32px);
-    min-width: 0;
-  }
+  .auditor-tools-menu { width: max-content; min-width: 0; }
   .auditor-btn   { font-size: 12px; padding: 9px 12px; }
   .theme-btn     { width: 36px; height: 36px; }
+
+  /* .topbar-actions (identidad + herramientas) tenía flex-shrink:0 y el
+     nombre del usuario en texto — en pantallas muy angostas (~390px) su
+     ancho mínimo se pasaba unos px del viewport y forzaba scroll horizontal
+     de toda la página. Se oculta el nombre (el avatar ya identifica y el
+     menú "Tu perfil" sigue mostrando el nombre completo al abrirlo) y se
+     recorta el padding para que quepa siempre en una sola línea. */
+  .user-name { display: none; }
+  .user-badge { padding: 7px 9px; }
+  .topbar-actions {
+    gap: 4px;
+    max-width: 100%; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .topbar-actions::-webkit-scrollbar { display: none; }
 
   /* "Exámenes por módulo": el intro (texto + botones) y cada fila
      (toggle + duración) son filas flex con justify-content:space-between
@@ -1703,9 +1828,10 @@ body:has(.modal-overlay.visible) .fab { display: none; }
     flex-direction: column; align-items: stretch; gap: 8px;
   }
   .exam-config-toggle span { white-space: normal; }
-  .exam-config-duration { justify-content: flex-end; }
+  .exam-config-duration, .exam-config-pool { justify-content: flex-end; }
 
   .quick-filters, .prueba-filters { gap: 5px; margin-bottom: 10px; }
+  .track-btn { font-size: 12px; padding: 8px 10px; min-width: 0; }
   .qf-btn, .pf-btn { font-size: 11px; padding: 5px 10px; }
   .qf-btn span, .pf-btn span { font-size: 9px; padding: 1px 5px; }
 
@@ -1759,7 +1885,6 @@ body:has(.modal-overlay.visible) .fab { display: none; }
 
   .flag-btn  { width: 24px; height: 24px; font-size: 12px; border-radius: 6px; }
   .prueba-btn { font-size: 9px !important; width: 22px !important; height: 22px !important; }
-  .edit-btn, .flag-divider { display: none; }
 
   .q-section { font-size: 9px; gap: 5px; margin-bottom: 5px; }
   .q-text    { font-size: 14px; line-height: 1.55; }

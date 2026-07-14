@@ -204,6 +204,9 @@ function toggleTheme() {
 let questions = [];
 let mode = 'study';
 let activeSection = 'all';
+// Track Consultor vs Desarrollador: separa dos temarios que comparten el mismo
+// banco de preguntas pero no deben mezclarse ni en navegación ni en exámenes.
+let activeTrack = localStorage.getItem('odoo_track') || 'consultor';
 // En Práctica el usuario puede combinar varios módulos a la vez; un set
 // vacío equivale a "Todas" (igual que activeSection === 'all' en Estudio).
 let practiceSections = new Set();
@@ -234,6 +237,7 @@ let examSubmitted  = false;
 let examStartTs    = null;
 let examFlagged    = new Set(); // global indices marcados para revisión
 let examFlagFilterActive = false; // si está activo, getFiltered() solo muestra las marcadas
+let examPoolIds    = null; // Set de ids que forman el pool exacto del examen actual (null = sin restricción, fuera de examen)
 
 // ── ESTADO DE EXÁMENES (configs, simulacro admin, flags) ──
 let examConfigs        = []; // [{ section, duration_minutes, ... }]
@@ -247,7 +251,7 @@ function getExamConfig(section) {
 
 function updateExamSetupCount() {
   const prueba = document.getElementById('examPruebaSelect').value;
-  const base = prueba ? questions.filter(q => q.prueba === prueba) : questions;
+  const base = questions.filter(q => q.track === activeTrack && (!prueba || q.prueba === prueba));
   const count = base.filter(q => q.answer).length;
   document.getElementById('examQCount').textContent = `${count} preguntas`;
 }
@@ -257,7 +261,7 @@ function startExam() {
   currentExamSource = 'admin';
   const prueba  = document.getElementById('examPruebaSelect').value;
   shuffleEnabled = true;
-  const base = prueba ? questions.filter(q => q.prueba === prueba) : questions;
+  const base = questions.filter(q => q.track === activeTrack && (!prueba || q.prueba === prueba));
   const pool = base.filter(q => q.answer);
   shuffledIds = shuffle(pool.map(q => q.id));
   examSecsLeft  = 90 * 60;
@@ -271,6 +275,7 @@ function startExam() {
   document.body.classList.remove('exam-setup-browse');
   startTimer();
   render();
+  updateExamProgress();
 }
 
 // ── EXAMEN POR MÓDULO (vista simple para usuarios) ───
@@ -293,7 +298,11 @@ function renderExamModuleList() {
 
   const container = document.getElementById('examModuleList');
   const fullCfg = getExamConfig(FULL_EXAM_SECTION);
-  const moduleConfigs = examConfigs.filter(c => c.section !== FULL_EXAM_SECTION);
+  // Solo módulos del track que el usuario tiene seleccionado ahora mismo — el
+  // examen completo se muestra siempre, pero su pool se acota al track activo
+  // al arrancarlo (ver startModuleExam).
+  const moduleConfigs = examConfigs.filter(c =>
+    c.section !== FULL_EXAM_SECTION && getSectionTrack(c.section) === activeTrack);
 
   if (!fullCfg && !moduleConfigs.length) {
     container.innerHTML = '<div class="empty"><div class="emoji">🚧</div><p>Aún no hay exámenes disponibles.<br>Pide al auditor que configure uno.</p></div>';
@@ -302,20 +311,25 @@ function renderExamModuleList() {
 
   let html = '';
   if (fullCfg) {
-    const count = questions.filter(q => q.answer).length;
+    const count = Math.min(fullCfg.pool_size || Infinity, questions.filter(q => q.answer && q.track === activeTrack).length);
     html += `<div class="exam-module-card full" onclick="selectExamModule(${fullCfg.id}, this)">
       <div class="emc-name">🌐 Examen completo · todas las secciones</div>
       <div class="emc-meta"><span>${count} preguntas</span><span>⏱ ${fullCfg.duration_minutes} min</span></div>
     </div>`;
   }
   html += moduleConfigs.map(cfg => {
-    const count = questions.filter(q => q.section === cfg.section && q.answer).length;
+    const total = questions.filter(q => q.section === cfg.section && q.answer).length;
+    const count = Math.min(cfg.pool_size || Infinity, total);
     return `<div class="exam-module-card" onclick="selectExamModule(${cfg.id}, this)">
       <div class="emc-name">${cfg.section}</div>
       <div class="emc-meta"><span>${count} preguntas</span><span>⏱ ${cfg.duration_minutes} min</span></div>
     </div>`;
   }).join('');
   container.innerHTML = html;
+}
+
+function getSectionTrack(section) {
+  return questions.find(q => q.section === section)?.track;
 }
 
 function selectExamModule(configId, el) {
@@ -337,10 +351,11 @@ function startModuleExam() {
   currentExamSource = 'module';
   shuffleEnabled = true;
 
-  // Acota el examen exclusivamente a las preguntas del módulo elegido (o a todas,
-  // si es el examen completo), reusando getFiltered() (que ya alimenta stats,
-  // resultados y guardado de sesión).
-  activeSection = isFullExam ? null : selectedExamModule;
+  // Acota el examen exclusivamente a las preguntas del módulo elegido (o a todas
+  // las del track activo, si es el examen completo). La restricción real la
+  // aplica examPoolIds en render() — activeSection/answerFilter solo se ajustan
+  // para que el resto de la UI (tabs, filtros laterales) quede coherente.
+  activeSection = isFullExam ? 'all' : selectedExamModule;
   searchTerm = ''; flagFilter = null; answerFilter = 'has-answer'; pruebaFilter = null;
   document.getElementById('searchInput').value = '';
   document.getElementById('searchClear').classList.remove('visible');
@@ -354,9 +369,12 @@ function startModuleExam() {
   updateTabs();
 
   const pool = isFullExam
-    ? questions.filter(q => q.answer)
+    ? questions.filter(q => q.answer && q.track === activeTrack)
     : questions.filter(q => q.section === selectedExamModule && q.answer);
-  shuffledIds = shuffle(pool.map(q => q.id));
+  let ids = shuffle(pool.map(q => q.id));
+  if (cfg?.pool_size && cfg.pool_size < ids.length) ids = ids.slice(0, cfg.pool_size);
+  shuffledIds = ids;
+  examPoolIds = new Set(ids);
 
   examSecsLeft  = mins * 60;
   examTotalSecs = mins * 60;
@@ -369,11 +387,12 @@ function startModuleExam() {
   document.getElementById('sectionStatsPanel').style.display = 'none';
   document.body.classList.remove('exam-setup-browse');
   const focusLabel = isFullExam
-    ? `🎓 Examen completo · ${pool.length} preguntas`
-    : `🎓 Examen de módulo · ${selectedExamModule} · ${pool.length} preguntas`;
+    ? `🎓 Examen completo · ${ids.length} preguntas`
+    : `🎓 Examen de módulo · ${selectedExamModule} · ${ids.length} preguntas`;
   setExamFocusUI(!auditorMode, focusLabel);
   startTimer();
   render();
+  updateExamProgress();
 }
 
 // ── CONFIGURACIÓN DE EXÁMENES POR MÓDULO (auditor) ────
@@ -414,6 +433,8 @@ function openImportModal() {
   document.getElementById('importConfirmBtn').disabled = true;
   document.getElementById('importConfirmBtn').textContent = 'Importar';
   importParsedRows = [];
+  const trackRadio = document.querySelector(`input[name="importTrack"][value="${activeTrack}"]`);
+  if (trackRadio) trackRadio.checked = true;
   document.getElementById('importOverlay').classList.add('visible');
 }
 
@@ -489,7 +510,8 @@ async function runImport() {
   btn.disabled = true;
   btn.textContent = 'Importando…';
 
-  const { data, error } = await db.from('preguntas').insert(ok.map(r => r.payload)).select();
+  const track = document.querySelector('input[name="importTrack"]:checked')?.value || 'consultor';
+  const { data, error } = await db.from('preguntas').insert(ok.map(r => ({ ...r.payload, track }))).select();
   btn.textContent = 'Importar';
   if (error) {
     showToast(`⚠️ No se pudo importar: ${error.message}`);
@@ -505,6 +527,212 @@ async function runImport() {
   render();
 }
 
+// ── EDITAR PREGUNTAS EN LOTE (auditor) ────────────────
+// Filtra sobre `questions` (ya cargadas en memoria) por módulo, prueba,
+// track y/o rango de fecha de importación (created_at), muestra una vista
+// previa y aplica una acción (eliminar, cambiar módulo/prueba/track/estado)
+// solo a lo que coincide con los filtros elegidos.
+let bulkEditMatches = [];
+
+const BULK_ACTION_LABELS = {
+  delete:  '🗑️ Eliminar',
+  section: '📦 Cambiar módulo',
+  prueba:  '📝 Cambiar prueba',
+  track:   '🏷️ Cambiar track',
+  status:  '✅ Cambiar estado',
+};
+
+function openBulkEditModal() {
+  const sectionSel = document.getElementById('bdSection');
+  const sections = [...new Set(questions.map(q => q.section))].sort();
+  sectionSel.innerHTML = '<option value="">Todos los módulos</option>'
+    + sections.map(s => `<option value="${s}">${s}</option>`).join('');
+
+  document.getElementById('bdPrueba').value = '';
+  document.getElementById('bdTrack').value = '';
+  document.getElementById('bdDateFrom').value = '';
+  document.getElementById('bdDateTo').value = '';
+  document.getElementById('bdAction').value = 'delete';
+  onBulkActionChange();
+  document.getElementById('bulkEditOverlay').classList.add('visible');
+}
+
+function closeBulkEditModal() {
+  document.getElementById('bulkEditOverlay').classList.remove('visible');
+}
+
+function onBulkActionChange() {
+  const action = document.getElementById('bdAction').value;
+  const wrap  = document.getElementById('bdActionExtraWrap');
+  const label = document.getElementById('bdActionExtraLabel');
+  const extra = document.getElementById('bdActionExtra');
+
+  if (action === 'delete') {
+    wrap.style.display = 'none';
+  } else {
+    wrap.style.display = 'block';
+    if (action === 'section') {
+      label.textContent = 'Nuevo módulo';
+      extra.innerHTML = '<input list="sectionList" id="bdNewSection" class="form-input" placeholder="Nombre del módulo">';
+    } else if (action === 'prueba') {
+      label.textContent = 'Nueva prueba';
+      extra.innerHTML = `<select id="bdNewPrueba" class="form-input">
+        <option value="">Ninguna</option>
+        <option value="prueba1">Prueba 1</option>
+        <option value="prueba2">Prueba 2</option>
+        <option value="prueba3">Prueba 3</option>
+      </select>`;
+    } else if (action === 'track') {
+      label.textContent = 'Nuevo track';
+      extra.innerHTML = `<select id="bdNewTrack" class="form-input">
+        <option value="consultor">🧑‍💼 Consultor</option>
+        <option value="desarrollador">💻 Desarrollador</option>
+      </select>`;
+    } else if (action === 'status') {
+      label.textContent = 'Nuevo estado';
+      extra.innerHTML = `<select id="bdNewStatus" class="form-input">
+        <option value="">Sin marcar</option>
+        <option value="segura">✅ Segura</option>
+        <option value="revisar">🔍 A revisar</option>
+        <option value="ilegible">⚠️ Ilegible</option>
+      </select>`;
+    }
+  }
+  refreshBulkEditButton();
+}
+
+function refreshBulkEditButton() {
+  const action = document.getElementById('bdAction').value;
+  const btn = document.getElementById('bulkEditConfirmBtn');
+  const n = bulkEditMatches.length;
+  btn.className = `modal-btn ${action === 'delete' ? 'delete' : 'confirm'}`;
+  btn.disabled = n === 0;
+  btn.textContent = n === 0 ? BULK_ACTION_LABELS[action] : `${BULK_ACTION_LABELS[action]} · ${n} pregunta(s)`;
+}
+
+function updateBulkEditPreview() {
+  const section  = document.getElementById('bdSection').value;
+  const prueba   = document.getElementById('bdPrueba').value;
+  const track    = document.getElementById('bdTrack').value;
+  const dateFrom = document.getElementById('bdDateFrom').value;
+  const dateTo   = document.getElementById('bdDateTo').value;
+  const list = document.getElementById('bulkEditList');
+
+  const hasFilter = section || prueba || track || dateFrom || dateTo;
+  if (!hasFilter) {
+    bulkEditMatches = [];
+    list.innerHTML = '<div class="empty"><div class="emoji">👆</div><p>Elige al menos un filtro para ver qué se vería afectado.</p></div>';
+    refreshBulkEditButton();
+    return;
+  }
+
+  bulkEditMatches = questions.filter(q => {
+    if (section && q.section !== section) return false;
+    if (prueba === '__none__' && q.prueba) return false;
+    if (prueba && prueba !== '__none__' && q.prueba !== prueba) return false;
+    if (track && q.track !== track) return false;
+    if (dateFrom && (!q.created_at || q.created_at.slice(0, 10) < dateFrom)) return false;
+    if (dateTo   && (!q.created_at || q.created_at.slice(0, 10) > dateTo))   return false;
+    return true;
+  });
+
+  if (!bulkEditMatches.length) {
+    list.innerHTML = '<div class="empty"><div class="emoji">🔍</div><p>Ningún resultado con estos filtros.</p></div>';
+    refreshBulkEditButton();
+    return;
+  }
+
+  list.innerHTML = bulkEditMatches.map(q => `
+    <div class="activity-item">
+      <div class="act-body">
+        <div class="act-top">
+          <strong>${q.section}</strong>
+          <span class="act-action">${q.prueba || 'sin prueba'} · ${q.track || 'sin track'}</span>
+          <span class="act-time">${q.created_at ? new Date(q.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span>
+        </div>
+        <div class="act-question">${(q.question || '').substring(0, 90)}</div>
+      </div>
+    </div>
+  `).join('');
+  refreshBulkEditButton();
+}
+
+// A partir de este tamaño de lote, borrar exige escribir la cantidad exacta
+// en vez de solo un confirm() — un filtro tan amplio como "Track" solo ya
+// alcanza para vaciar todo un temario con un clic distraído.
+const BULK_DELETE_TYPED_CONFIRM_THRESHOLD = 20;
+
+async function confirmBulkAction() {
+  if (!bulkEditMatches.length) return;
+  const action = document.getElementById('bdAction').value;
+  const n = bulkEditMatches.length;
+  const ids = bulkEditMatches.map(q => q.id);
+
+  if (action === 'delete') {
+    if (n >= BULK_DELETE_TYPED_CONFIRM_THRESHOLD) {
+      const typed = prompt(`Vas a eliminar ${n} preguntas de forma permanente. Escribe ${n} para confirmar.`);
+      if (typed === null) return;
+      if (typed.trim() !== String(n)) { showToast('⚠️ Cancelado: el número no coincidió.'); return; }
+    } else if (!confirm(`¿Eliminar ${n} pregunta(s)? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+  } else {
+    if (!confirm(`¿Aplicar "${BULK_ACTION_LABELS[action]}" a ${n} pregunta(s)?`)) return;
+  }
+
+  const btn = document.getElementById('bulkEditConfirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Aplicando…';
+
+  if (action === 'delete') {
+    const { error } = await db.from('preguntas').delete().in('id', ids);
+    if (error) { showToast(`⚠️ No se pudo eliminar: ${error.message}`); refreshBulkEditButton(); return; }
+    logActivity(null, `Eliminó ${n} pregunta(s) en lote`, null);
+    questions = questions.filter(q => !ids.includes(q.id));
+    showToast(`✅ Se eliminaron ${n} preguntas`);
+  } else {
+    const fieldMap = {
+      section: { column: 'section', value: document.getElementById('bdNewSection').value.trim() },
+      prueba:  { column: 'prueba',  value: document.getElementById('bdNewPrueba').value || null },
+      track:   { column: 'track',   value: document.getElementById('bdNewTrack').value },
+      status:  { column: 'status',  value: document.getElementById('bdNewStatus').value || null },
+    };
+    const { column, value } = fieldMap[action];
+    if (column === 'section' && !value) { showToast('⚠️ Escribe el nuevo módulo.'); refreshBulkEditButton(); return; }
+
+    // Si se renombra el módulo, hay que migrar su exam_config (duración/pool_size)
+    // al nuevo nombre antes de perder de vista cuál era el módulo original —
+    // si no, el examen configurado para ese módulo queda huérfano.
+    const oldSectionsWithConfig = column === 'section'
+      ? [...new Set(bulkEditMatches.map(q => q.section))].filter(s => s !== value && getExamConfig(s))
+      : [];
+
+    const { error } = await db.from('preguntas').update({ [column]: value }).in('id', ids);
+    if (error) { showToast(`⚠️ No se pudo aplicar el cambio: ${error.message}`); refreshBulkEditButton(); return; }
+    questions.forEach(q => { if (ids.includes(q.id)) q[column] = value; });
+
+    for (const oldSection of oldSectionsWithConfig) {
+      const cfg = getExamConfig(oldSection);
+      await db.from('exam_configs').upsert(
+        { section: value, duration_minutes: cfg.duration_minutes, pool_size: cfg.pool_size, created_by: currentUser, updated_at: new Date().toISOString() },
+        { onConflict: 'section' }
+      );
+      await db.from('exam_configs').delete().eq('section', oldSection);
+    }
+    if (oldSectionsWithConfig.length) {
+      const { data: configsData } = await db.from('exam_configs').select('*');
+      examConfigs = configsData || [];
+    }
+
+    logActivity(null, `Cambió ${column} de ${n} pregunta(s) en lote a "${value ?? '(vacío)'}"`, null);
+    showToast(`✅ Se actualizaron ${n} preguntas`);
+  }
+
+  closeBulkEditModal();
+  buildSectionTabs();
+  render();
+}
+
 function renderExamConfigList() {
   const sections = [...new Set(questions.map(q => q.section))].sort();
   const list = document.getElementById('examConfigList');
@@ -513,10 +741,11 @@ function renderExamConfigList() {
     return;
   }
   const fullCfg = getExamConfig(FULL_EXAM_SECTION);
+  const fullTotal = questions.filter(q => q.answer && q.track === activeTrack).length;
   const fullRow = `<div class="activity-item exam-config-row exam-config-row-full">
     <label class="exam-config-toggle">
       <input type="checkbox" ${fullCfg ? 'checked' : ''} onchange="toggleExamConfig('${FULL_EXAM_SECTION}', this.checked)">
-      <span>🌐 Examen completo · todas las secciones</span>
+      <span>🌐 Examen completo · secciones del track activo</span>
     </label>
     <div class="exam-config-duration">
       <input type="number" min="5" max="240" step="5"
@@ -525,10 +754,19 @@ function renderExamConfigList() {
              onchange="updateExamConfigDuration('${FULL_EXAM_SECTION}', this.value)">
       <span>min</span>
     </div>
+    <div class="exam-config-pool">
+      <input type="number" min="1" max="${fullTotal}" placeholder="Todas"
+             value="${fullCfg?.pool_size ?? ''}"
+             ${fullCfg ? '' : 'disabled'}
+             onchange="updateExamConfigPoolSize('${FULL_EXAM_SECTION}', this.value)">
+      <span>de ${fullTotal} preguntas</span>
+    </div>
   </div>`;
-  const moduleRows = sections.map(section => {
+
+  const renderModuleRow = section => {
     const cfg = getExamConfig(section);
     const safeSection = section.replace(/'/g, "\\'");
+    const total = questions.filter(q => q.section === section && q.answer).length;
     return `<div class="activity-item exam-config-row">
       <label class="exam-config-toggle">
         <input type="checkbox" ${cfg ? 'checked' : ''} onchange="toggleExamConfig('${safeSection}', this.checked)">
@@ -541,9 +779,30 @@ function renderExamConfigList() {
                onchange="updateExamConfigDuration('${safeSection}', this.value)">
         <span>min</span>
       </div>
+      <div class="exam-config-pool">
+        <input type="number" min="1" max="${total}" placeholder="Todas"
+               value="${cfg?.pool_size ?? ''}"
+               ${cfg ? '' : 'disabled'}
+               onchange="updateExamConfigPoolSize('${safeSection}', this.value)">
+        <span>de ${total} preguntas</span>
+      </div>
     </div>`;
-  }).join('');
-  list.innerHTML = fullRow + '<div class="exam-config-divider"></div>' + moduleRows;
+  };
+
+  // Agrupado por track para que el auditor configure ambos temarios desde
+  // una sola pantalla, sin depender de qué track tenga seleccionado como
+  // estudiante en la barra lateral.
+  const consultorSections = sections.filter(s => getSectionTrack(s) === 'consultor');
+  const devSections       = sections.filter(s => getSectionTrack(s) === 'desarrollador');
+  let groupedHtml = '';
+  if (consultorSections.length) {
+    groupedHtml += `<div class="exam-config-group-label">🧑‍💼 Consultor</div>` + consultorSections.map(renderModuleRow).join('');
+  }
+  if (devSections.length) {
+    groupedHtml += `<div class="exam-config-group-label">💻 Desarrollador</div>` + devSections.map(renderModuleRow).join('');
+  }
+
+  list.innerHTML = fullRow + '<div class="exam-config-divider"></div>' + groupedHtml;
 }
 
 function examConfigLabel(section) {
@@ -608,6 +867,26 @@ async function updateExamConfigDuration(section, value) {
   const shortLabel = section === FULL_EXAM_SECTION ? 'Examen completo' : `"${section}"`;
   logActivity(null, `Cambió duración de ${examConfigLabel(section)} → ${minutes} min`, null);
   showToast(`✅ Duración de ${shortLabel} actualizada a ${minutes} min`);
+  renderExamConfigList();
+}
+
+async function updateExamConfigPoolSize(section, value) {
+  const cfg = getExamConfig(section);
+  if (!cfg) return;
+  const total = section === FULL_EXAM_SECTION
+    ? questions.filter(q => q.answer && q.track === activeTrack).length
+    : questions.filter(q => q.section === section && q.answer).length;
+  const raw = parseInt(value, 10);
+  const poolSize = raw ? Math.max(1, Math.min(total, raw)) : null;
+  const { data, error } = await db.from('exam_configs')
+    .update({ pool_size: poolSize, created_by: currentUser, updated_at: new Date().toISOString() })
+    .eq('section', section).select().single();
+  if (error) { showToast('⚠️ No se pudo guardar el tamaño del pool: ' + error.message); renderExamConfigList(); return; }
+  const idx = examConfigs.findIndex(c => c.section === section);
+  if (idx !== -1) examConfigs[idx] = data;
+  const shortLabel = section === FULL_EXAM_SECTION ? 'Examen completo' : `"${section}"`;
+  logActivity(null, `Cambió tamaño de pool de ${examConfigLabel(section)} → ${poolSize ?? 'todas'}`, null);
+  showToast(`✅ Pool de ${shortLabel} actualizado`);
   renderExamConfigList();
 }
 
@@ -1041,7 +1320,7 @@ function setPruebaFilter(val) {
 }
 
 function buildPruebaFilters() {
-  const pruebas = [...new Set(questions.map(q => q.prueba).filter(Boolean))].sort();
+  const pruebas = [...new Set(questions.filter(q => q.track === activeTrack).map(q => q.prueba).filter(Boolean))].sort();
   const container = document.getElementById('pruebaFilters');
   container.innerHTML = '';
 
@@ -1135,6 +1414,7 @@ async function setPrueba(qId, prueba, e) {
   const label = prueba.replace('prueba', 'Prueba ');
   showToast(newVal ? `🏷️ Asignada a ${label}` : `🚫 Quitada de ${label}`);
   render();
+  refreshCardMenuIfOpen(qId);
 }
 
 function getQFlags(q) {
@@ -1160,6 +1440,7 @@ async function setFlag(qId, flag, e) {
   logActivity(qId, adding ? `Marcó como ${labels[flag]}` : `Quitó ${labels[flag]}`, q.question?.substring(0,60));
   showToast(adding ? `${labels[flag]}` : `Se quitó la marca «${labels[flag].replace(/^\S+\s/, '')}»`);
   render();
+  refreshCardMenuIfOpen(qId);
 }
 
 function setFlagFilter(val) {
@@ -1178,8 +1459,19 @@ function setAnswerFilter(val) {
   render();
 }
 
+const SIDEBAR_COLLAPSE_KEY = 'odoo_sidebar_collapsed';
+
+function getSidebarCollapseState() {
+  try { return JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSE_KEY)) || {}; }
+  catch { return {}; }
+}
+
 function toggleSidebarSection(headerEl) {
-  headerEl.closest('.sidebar-section').classList.toggle('collapsed');
+  const section = headerEl.closest('.sidebar-section');
+  section.classList.toggle('collapsed');
+  const state = getSidebarCollapseState();
+  state[section.id] = section.classList.contains('collapsed');
+  localStorage.setItem(SIDEBAR_COLLAPSE_KEY, JSON.stringify(state));
 }
 
 function setAuditorUI(active) {
@@ -1199,7 +1491,18 @@ function setAuditorUI(active) {
 
 function toggleAuditorTools(e) {
   e.stopPropagation();
-  document.getElementById('auditorToolsMenu').classList.toggle('open');
+  const menu = document.getElementById('auditorToolsMenu');
+  if (menu.classList.contains('open')) { closeAuditorTools(); return; }
+
+  // Se reubica al final del body y se posiciona con coordenadas fijas para
+  // que ningún ancestro (ej. .topbar-actions, que en pantallas angostas
+  // puede desplazarse horizontalmente) lo recorte por overflow.
+  document.body.appendChild(menu);
+  const rect = document.getElementById('auditorToolsBtn').getBoundingClientRect();
+  menu.style.top   = `${rect.bottom + 8}px`;
+  menu.style.right = `${Math.max(16, window.innerWidth - rect.right)}px`;
+  menu.style.left  = 'auto';
+  menu.classList.add('open');
 }
 
 function closeAuditorTools() {
@@ -1208,8 +1511,86 @@ function closeAuditorTools() {
 
 document.addEventListener('click', (e) => {
   const tools = document.getElementById('auditorTools');
-  if (tools && !tools.contains(e.target)) closeAuditorTools();
+  const menu  = document.getElementById('auditorToolsMenu');
+  if (tools && !tools.contains(e.target) && !(menu && menu.contains(e.target))) closeAuditorTools();
 });
+
+// ── MENÚ "⋯" POR PREGUNTA (auditor) ───────────────────
+// Consolida en un solo popover flotante lo que antes eran tres controles
+// siempre visibles por tarjeta (flags de estado, asignación de prueba,
+// editar), para no saturar la fila con cada tarjeta que se renderiza.
+function buildCardMenuHtml(qId) {
+  const q = questions.find(q => q.id === qId);
+  if (!q) return '';
+  const qFlags = getQFlags(q);
+  const pruebas = [...new Set(questions.map(r => r.prueba).filter(Boolean))].sort();
+
+  return `
+    <div class="cam-label">Estado</div>
+    <div class="cam-row">
+      <button class="flag-btn ${qFlags.has('segura') ? 'active' : ''}" title="Segura" onclick="setFlag(${qId}, 'segura', event)">✅ Segura</button>
+      <button class="flag-btn ${qFlags.has('revisar') ? 'active' : ''}" title="A revisar" onclick="setFlag(${qId}, 'revisar', event)">🔍 A revisar</button>
+      <button class="flag-btn ilegible-btn ${qFlags.has('ilegible') ? 'active' : ''}" title="Ilegible" onclick="setFlag(${qId}, 'ilegible', event)">⚠️ Ilegible</button>
+    </div>
+    ${pruebas.length ? `
+    <div class="cam-label">Prueba</div>
+    <div class="cam-row">
+      ${pruebas.map((p, i) => {
+        const label = 'P' + (i + 1);
+        const cls   = `pcolor-${i + 1}`;
+        return `<button class="flag-btn prueba-btn ${q.prueba === p ? `active ${cls}` : ''}" title="${p.replace('prueba','Prueba ')}" onclick="setPrueba(${qId}, '${p}', event)">${label}</button>`;
+      }).join('')}
+    </div>` : ''}
+    <div class="cam-divider"></div>
+    <button class="cam-edit-btn" onclick="handleEditClick(${qId}); closeCardMenu()">✏️ Editar pregunta</button>
+  `;
+}
+
+function toggleCardMenu(qId, event) {
+  event.stopPropagation();
+  const existing = document.getElementById('cardActionsMenu');
+  const wasOpenForSameCard = existing && Number(existing.dataset.qid) === qId;
+  closeCardMenu();
+  if (wasOpenForSameCard) return;
+
+  const menu = document.createElement('div');
+  menu.id = 'cardActionsMenu';
+  menu.className = 'card-actions-menu';
+  menu.dataset.qid = qId;
+  menu.onclick = e => e.stopPropagation();
+  menu.innerHTML = buildCardMenuHtml(qId);
+  document.body.appendChild(menu);
+
+  const rect = event.currentTarget.getBoundingClientRect();
+  menu.style.top  = `${rect.bottom + window.scrollY + 4}px`;
+  menu.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 240)}px`;
+}
+
+function closeCardMenu() {
+  document.getElementById('cardActionsMenu')?.remove();
+}
+
+function refreshCardMenuIfOpen(qId) {
+  const menu = document.getElementById('cardActionsMenu');
+  if (menu && Number(menu.dataset.qid) === qId) menu.innerHTML = buildCardMenuHtml(qId);
+}
+
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('cardActionsMenu');
+  if (menu && !menu.contains(e.target)) closeCardMenu();
+});
+
+// Ambos menús flotantes (auditor-tools y el "⋯" de cada tarjeta) se
+// posicionan una sola vez, al abrirse, con coordenadas fijas de viewport.
+// El topbar es sticky y puede cambiar de posición real al hacer scroll
+// (o el propio contenido se desplaza), así que en vez de recalcular la
+// posición en cada evento de scroll, simplemente se cierran — es el
+// comportamiento estándar de este tipo de menú y evita que quede flotando
+// desconectado del botón que lo abrió.
+window.addEventListener('scroll', () => {
+  closeAuditorTools();
+  closeCardMenu();
+}, true);
 
 function handleEditClick(qId) {
   openQuestionModal(questions.find(q => q.id === qId));
@@ -1245,6 +1626,8 @@ function openQuestionModal(q = null) {
   document.querySelector(`input[name="qMyAnswer"][value="${myAns}"]`).checked = true;
   const prueba = q?.prueba || '';
   document.querySelector(`input[name="qPrueba"][value="${prueba}"]`).checked = true;
+  const track = q ? q.track : activeTrack;
+  document.querySelector(`input[name="qTrack"][value="${track}"]`).checked = true;
   document.getElementById('qDeleteBtn').style.display = q ? 'flex' : 'none';
   document.getElementById('qModalOverlay').classList.add('visible');
   setTimeout(() => document.getElementById('qSection').focus(), 100);
@@ -1270,7 +1653,8 @@ async function saveQuestion() {
 
   const myAnswer = document.querySelector('input[name="qMyAnswer"]:checked')?.value || null;
   const prueba   = document.querySelector('input[name="qPrueba"]:checked')?.value   || null;
-  const payload  = { section, question, options: { A: optA, B: optB, C: optC }, answer, my_answer: myAnswer || null, prueba: prueba || null };
+  const track    = document.querySelector('input[name="qTrack"]:checked')?.value || activeTrack;
+  const payload  = { section, question, options: { A: optA, B: optB, C: optC }, answer, my_answer: myAnswer || null, prueba: prueba || null, track };
 
   if (currentEditId) {
     const { error } = await db.from('preguntas').update(payload).eq('id', currentEditId);
@@ -1281,7 +1665,6 @@ async function saveQuestion() {
     const { data, error } = await db.from('preguntas').insert(payload).select().single();
     if (error) { errEl.textContent = 'Error: ' + error.message; return; }
     questions.push(data);
-    document.getElementById('totalCount').textContent = questions.length;
   }
 
   const savedQ = questions.find(q => q.id === currentEditId);
@@ -1289,6 +1672,7 @@ async function saveQuestion() {
     currentEditId ? 'Editó pregunta' : 'Creó nueva pregunta',
     payload.question?.substring(0,60));
   closeQModal();
+  buildSectionTabs();
   render();
 }
 
@@ -1300,8 +1684,8 @@ async function deleteQuestion() {
   if (error) { document.getElementById('qModalError').textContent = 'Error: ' + error.message; return; }
   logActivity(null, 'Eliminó pregunta', q?.question?.substring(0,60));
   questions = questions.filter(q => q.id !== currentEditId);
-  document.getElementById('totalCount').textContent = questions.length;
   closeQModal();
+  buildSectionTabs();
   render();
 }
 
@@ -1417,13 +1801,17 @@ async function onDrop(e, targetQId) {
 async function init() {
   questionsList.innerHTML = '<div class="empty"><div class="emoji">⏳</div><p>Cargando preguntas...</p></div>';
 
-  // En pantallas angostas la barra lateral se apila arriba del contenido;
-  // arrancan comprimidas para no empujar las preguntas hacia abajo.
-  if (window.innerWidth < 900) {
-    ['ssEstado', 'ssRespuesta', 'ssExamen', 'ssModulos'].forEach(id => {
-      document.getElementById(id)?.classList.add('collapsed');
-    });
-  }
+  // Restaura qué secciones de la barra lateral dejó colapsadas cada quien la
+  // última vez (odoo_sidebar_collapsed) — si nunca las tocó, en pantallas
+  // angostas arrancan comprimidas por defecto para no empujar las preguntas
+  // hacia abajo.
+  const savedCollapse = getSidebarCollapseState();
+  ['ssEstado', 'ssRespuesta', 'ssExamen', 'ssModulos'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const shouldCollapse = id in savedCollapse ? savedCollapse[id] : window.innerWidth < 900;
+    el.classList.toggle('collapsed', shouldCollapse);
+  });
 
   const { data, error } = await db
     .from('preguntas')
@@ -1444,11 +1832,34 @@ async function init() {
   const migrated = await migrateLocalFlags();
   if (migrated > 0) showToast(`✅ ${migrated} marcas sincronizadas con la base de datos.`);
 
-  const sections = [...new Set(questions.map(q => q.section))];
-  document.getElementById('totalCount').textContent = questions.length;
+  buildSectionTabs();
+
+  document.getElementById('searchInput').addEventListener('input', e => {
+    searchTerm = e.target.value.toLowerCase();
+    document.getElementById('searchClear').classList.toggle('visible', !!e.target.value);
+    render();
+  });
+
+  buildPruebaFilters();
+  document.getElementById('examPruebaSelect').addEventListener('change', updateExamSetupCount);
+
+  if (!auditorMode) loadMyProgressSummary();
+  render();
+}
+
+// Módulos, datalist de secciones y opciones de prueba del simulacro — todo
+// derivado únicamente de las preguntas del track activo, para no mezclar
+// Consultor y Desarrollador. Se reconstruye al cargar y al cambiar de track.
+function buildSectionTabs() {
+  document.getElementById('qfTrackConsultor')?.classList.toggle('active', activeTrack === 'consultor');
+  document.getElementById('qfTrackDev')?.classList.toggle('active', activeTrack === 'desarrollador');
+  const trackQuestions = questions.filter(q => q.track === activeTrack);
+  const sections = [...new Set(trackQuestions.map(q => q.section))];
+  document.getElementById('totalCount').textContent = trackQuestions.length;
   document.getElementById('sectionCount').textContent = sections.length;
 
   const tabs = document.getElementById('sectionTabs');
+  tabs.innerHTML = '';
   const allTab = document.createElement('button');
   allTab.className = 'tab active'; allTab.textContent = 'Todas';
   allTab.dataset.section = 'all';
@@ -1456,7 +1867,7 @@ async function init() {
   tabs.appendChild(allTab);
 
   sections.forEach(s => {
-    const count = questions.filter(q => q.section === s).length;
+    const count = trackQuestions.filter(q => q.section === s).length;
     const t = document.createElement('button');
     t.className = 'tab';
     t.dataset.section = s;
@@ -1465,32 +1876,33 @@ async function init() {
     tabs.appendChild(t);
   });
 
-  document.getElementById('searchInput').addEventListener('input', e => {
-    searchTerm = e.target.value.toLowerCase();
-    document.getElementById('searchClear').classList.toggle('visible', !!e.target.value);
-    render();
-  });
   const dl = document.getElementById('sectionList');
+  dl.innerHTML = '';
   sections.forEach(s => {
     const opt = document.createElement('option');
     opt.value = s;
     dl.appendChild(opt);
   });
 
-  buildPruebaFilters();
-
-  // Poblar selector de prueba en examen
   const examSel = document.getElementById('examPruebaSelect');
-  const pruebas = [...new Set(questions.map(q => q.prueba).filter(Boolean))].sort();
+  const pruebas = [...new Set(trackQuestions.map(q => q.prueba).filter(Boolean))].sort();
   examSel.innerHTML = '<option value="">Todas las preguntas</option>';
   pruebas.forEach(p => {
     const o = document.createElement('option');
     o.value = p; o.textContent = p.replace('prueba', 'Prueba ');
     examSel.appendChild(o);
   });
-  examSel.addEventListener('change', updateExamSetupCount);
+}
 
-  if (!auditorMode) loadMyProgressSummary();
+function setActiveTrack(track) {
+  if (track === activeTrack) return;
+  activeTrack = track;
+  localStorage.setItem('odoo_track', track);
+  activeSection = 'all';
+  practiceSections.clear();
+  pruebaFilter = null;
+  buildSectionTabs();
+  buildPruebaFilters();
   render();
 }
 
@@ -1552,6 +1964,7 @@ function setMode(m) {
   mode = m;
   clearInterval(examTimer);
   setExamFocusUI(false);
+  examPoolIds = null;
 
   ['btnStudy','btnPractice','btnExam'].forEach(id => {
     const el = document.getElementById(id);
@@ -1630,6 +2043,7 @@ function updateScore() {
 
 function getFiltered() {
   return questions.filter(q => {
+    const trackOk = q.track === activeTrack;
     const secOk = mode === 'practice'
       ? (practiceSections.size === 0 || practiceSections.has(q.section))
       : (activeSection === 'all' || q.section === activeSection);
@@ -1651,7 +2065,7 @@ function getFiltered() {
       : answerFilter === 'has-answer' ? !!q.answer
       : answerFilter === 'has-my'     ? !!q.my_answer
       : !q.answer && !q.my_answer;
-    return secOk && searchOk && flagOk && pruebaOk && answerOk;
+    return trackOk && secOk && searchOk && flagOk && pruebaOk && answerOk;
   }).sort((a, b) => {
     if (!shuffleEnabled || shuffledIds.length === 0) return 0;
     const ai = shuffledIds.indexOf(a.id);
@@ -1666,36 +2080,46 @@ function getFiltered() {
 function render() {
   let filtered = getFiltered();
   const list = document.getElementById('questionsList');
+  // examPoolIds es la fuente de verdad de qué preguntas pertenecen al examen
+  // en curso (incluye el recorte a pool_size, si el auditor configuró uno).
+  if (mode === 'exam' && examPoolIds) {
+    filtered = filtered.filter(q => examPoolIds.has(q.id));
+  }
   // En examen, "Ver marcadas" acota la vista a las preguntas que el
   // usuario marcó con 🚩, sin alterar las estadísticas del examen
   // completo (esas siguen usando getFiltered() sin esta restricción).
   if (mode === 'exam' && examFlagFilterActive && !examSubmitted) {
     filtered = filtered.filter(q => examFlagged.has(questions.indexOf(q)));
   }
-  document.getElementById('resultCount').innerHTML =
-    `Mostrando <span>${filtered.length}</span> de <span>${questions.length}</span> preguntas`;
+  // Los contadores de la barra lateral se acotan al track activo — solo
+  // `questions` (banco completo) sigue usándose donde hace falta cruzar tracks
+  // (ej. examPoolIds, examFlagged por índice global).
+  const trackQuestions = questions.filter(q => q.track === activeTrack);
 
-  const hf = f => questions.filter(q => getQFlags(q).has(f)).length;
-  document.getElementById('qfAllCount').textContent     = questions.length ? `(${questions.length})` : '';
-  document.getElementById('qfSinRevCount').textContent   = questions.filter(q => getQFlags(q).size === 0).length;
+  document.getElementById('resultCount').innerHTML =
+    `Mostrando <span>${filtered.length}</span> de <span>${trackQuestions.length}</span> preguntas`;
+
+  const hf = f => trackQuestions.filter(q => getQFlags(q).has(f)).length;
+  document.getElementById('qfAllCount').textContent     = trackQuestions.length ? `(${trackQuestions.length})` : '';
+  document.getElementById('qfSinRevCount').textContent   = trackQuestions.filter(q => getQFlags(q).size === 0).length;
   document.getElementById('qfSeguraCount').textContent   = hf('segura');
   document.getElementById('qfRevisarCount').textContent  = hf('revisar');
   document.getElementById('qfIlegibleCount').textContent = hf('ilegible');
 
-  document.getElementById('qfAnsAllCount').textContent      = questions.length ? `(${questions.length})` : '';
-  document.getElementById('qfAnsCorrectaCount').textContent = questions.filter(q => !!q.answer).length;
-  document.getElementById('qfAnsMiRespCount').textContent   = questions.filter(q => !!q.my_answer).length;
-  document.getElementById('qfAnsSinRespCount').textContent  = questions.filter(q => !q.answer && !q.my_answer).length;
+  document.getElementById('qfAnsAllCount').textContent      = trackQuestions.length ? `(${trackQuestions.length})` : '';
+  document.getElementById('qfAnsCorrectaCount').textContent = trackQuestions.filter(q => !!q.answer).length;
+  document.getElementById('qfAnsMiRespCount').textContent   = trackQuestions.filter(q => !!q.my_answer).length;
+  document.getElementById('qfAnsSinRespCount').textContent  = trackQuestions.filter(q => !q.answer && !q.my_answer).length;
 
-  const pruebas = [...new Set(questions.map(q => q.prueba).filter(Boolean))];
+  const pruebas = [...new Set(trackQuestions.map(q => q.prueba).filter(Boolean))];
   pruebas.forEach(p => {
     const el = document.getElementById(`pfCount_${p}`);
-    if (el) el.textContent = questions.filter(q => q.prueba === p).length;
+    if (el) el.textContent = trackQuestions.filter(q => q.prueba === p).length;
   });
   const conEl = document.getElementById('pfCount_con');
-  if (conEl) conEl.textContent = questions.filter(q => !!q.prueba).length;
+  if (conEl) conEl.textContent = trackQuestions.filter(q => !!q.prueba).length;
   const sinEl = document.getElementById('pfCount_sin');
-  if (sinEl) sinEl.textContent = questions.filter(q => !q.prueba).length;
+  if (sinEl) sinEl.textContent = trackQuestions.filter(q => !q.prueba).length;
 
   if (filtered.length === 0) {
     list.innerHTML = '<div class="empty"><div class="emoji">🔍</div><p>No se encontraron preguntas.</p></div>';
@@ -1783,22 +2207,7 @@ function render() {
           <div class="q-text">${q.question}</div>
         </div>
         <div class="flag-btns">
-          ${auditorMode ? `
-          <span class="flag-cluster" title="Estado de la pregunta">
-            <button class="flag-btn ${qFlags.has('segura') ? 'active' : ''}" title="Segura" onclick="setFlag(${q.id}, 'segura', event)">✅</button>
-            <button class="flag-btn ${qFlags.has('revisar') ? 'active' : ''}" title="A revisar" onclick="setFlag(${q.id}, 'revisar', event)">🔍</button>
-            <button class="flag-btn ilegible-btn ${qFlags.has('ilegible') ? 'active' : ''}" title="Ilegible" onclick="setFlag(${q.id}, 'ilegible', event)">⚠️</button>
-          </span>
-          <span class="flag-cluster" title="Prueba asignada">
-          ${[...new Set(questions.map(r => r.prueba).filter(Boolean))].sort().map((p,i) => {
-              const label = 'P'+(i+1);
-              const cls   = `pcolor-${i+1}`;
-              return `<button class="flag-btn prueba-btn ${q.prueba === p ? `active ${cls}` : ''}" title="${p.replace('prueba','Prueba ')}" onclick="event.stopPropagation(); setPrueba(${q.id}, '${p}', event)">${label}</button>`;
-            }).join('')}
-          </span>
-          <span class="flag-divider"></span>
-          <button class="flag-btn edit-btn" title="Editar pregunta" onclick="event.stopPropagation(); handleEditClick(${q.id})">✏️</button>
-          ` : ''}
+          ${auditorMode ? `<button class="card-menu-btn" title="Más acciones" onclick="toggleCardMenu(${q.id}, event)">⋯</button>` : ''}
           ${mode === 'exam' && !examSubmitted && examStartTs
             ? `<button class="flag-btn exam-flag-btn ${examFlagged.has(globalIdx) ? 'flagged' : ''}" title="Marcar para revisión" onclick="event.stopPropagation(); toggleExamFlag(${globalIdx})">🚩</button>`
             : ''}

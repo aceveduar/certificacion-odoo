@@ -19,6 +19,13 @@
 
     <!-- ── SIDEBAR ──────────────────────────────────── -->
     <aside class="sidebar">
+      <div class="track-switcher" id="trackSwitcher">
+        <div class="track-switcher-label">Track</div>
+        <div class="track-switcher-buttons">
+          <button class="track-btn active" id="qfTrackConsultor" onclick="setActiveTrack('consultor')">🧑‍💼 Consultor</button>
+          <button class="track-btn" id="qfTrackDev" onclick="setActiveTrack('desarrollador')">💻 Desarrollador</button>
+        </div>
+      </div>
       <div class="search-box">
         <span class="icon">🔍</span>
         <input type="text" id="searchInput" placeholder="Buscar pregunta...">
@@ -112,11 +119,17 @@
             <div class="auditor-tools" id="auditorTools">
               <button class="auditor-tools-btn" id="auditorToolsBtn" onclick="toggleAuditorTools(event)" title="Herramientas de auditor">🛠️</button>
               <div class="auditor-tools-menu" id="auditorToolsMenu">
+                <div class="auditor-menu-group-label">Preguntas</div>
+                <button class="auditor-menu-item" id="importBtn" onclick="openImportModal(); closeAuditorTools()">📥 Importar preguntas</button>
+                <button class="auditor-menu-item" id="bulkEditBtnMenu" onclick="openBulkEditModal(); closeAuditorTools()">📋 Editar en lote</button>
+                <div class="auditor-menu-divider"></div>
+                <div class="auditor-menu-group-label">Configuración</div>
+                <button class="auditor-menu-item" id="examConfigBtn" onclick="openExamConfigModal(); closeAuditorTools()">⚙️ Exámenes por módulo</button>
+                <div class="auditor-menu-divider"></div>
+                <div class="auditor-menu-group-label">Reportes</div>
                 <button class="auditor-menu-item" id="userStatsBtn" onclick="openUserStats(); closeAuditorTools()">🏆 Resultados por persona</button>
                 <button class="auditor-menu-item" id="resultsBtn" onclick="toggleResults(); closeAuditorTools()">📊 Resultados</button>
                 <button class="auditor-menu-item" id="activityBtn" onclick="openActivity(); closeAuditorTools()">🕐 Historial de actividad</button>
-                <button class="auditor-menu-item" id="examConfigBtn" onclick="openExamConfigModal(); closeAuditorTools()">⚙️ Exámenes por módulo</button>
-                <button class="auditor-menu-item" id="importBtn" onclick="openImportModal(); closeAuditorTools()">📥 Importar preguntas</button>
               </div>
             </div>
             <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Tema"></button>
@@ -214,6 +227,12 @@
   <div class="modal-overlay" id="qModalOverlay">
     <div class="modal q-modal" onclick="event.stopPropagation()">
       <h3 id="qModalTitle">Editar pregunta</h3>
+
+      <label class="form-label">Track</label>
+      <div class="answer-radio">
+        <label class="radio-opt"><input type="radio" name="qTrack" value="consultor"> 🧑‍💼 Consultor</label>
+        <label class="radio-opt"><input type="radio" name="qTrack" value="desarrollador"> 💻 Desarrollador</label>
+      </div>
 
       <label class="form-label">Sección</label>
       <input list="sectionList" id="qSection" class="form-input" placeholder="Ej. Ventas">
@@ -330,8 +349,13 @@
             <button class="import-template-btn" onclick="downloadQuestionTemplate()">⬇️ Descargar plantilla (.csv)</button>
           </li>
           <li>Selecciona y copia las filas con datos (sin la fila de encabezados).</li>
-          <li>Pégalas abajo, revisa la vista previa y confirma.</li>
+          <li>Elige el track y pégalas abajo, revisa la vista previa y confirma.</li>
         </ol>
+        <label class="form-label">Track de este lote</label>
+        <div class="answer-radio" style="margin-bottom:12px">
+          <label class="radio-opt"><input type="radio" name="importTrack" value="consultor" checked> 🧑‍💼 Consultor</label>
+          <label class="radio-opt"><input type="radio" name="importTrack" value="desarrollador"> 💻 Desarrollador</label>
+        </div>
         <textarea id="importTextarea" class="form-textarea import-textarea" rows="6"
           placeholder="Pega aquí las filas copiadas de tu hoja de cálculo (una pregunta por línea)…"
           oninput="previewImport()"></textarea>
@@ -340,6 +364,69 @@
       <div class="modal-actions" style="margin-top:14px">
         <button class="modal-btn cancel" onclick="closeImportModal()">Cancelar</button>
         <button class="modal-btn confirm" id="importConfirmBtn" onclick="runImport()" disabled>Importar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Editar preguntas en lote (auditor) -->
+  <div class="modal-overlay" id="bulkEditOverlay" onclick="closeBulkEditModal()">
+    <div class="modal activity-modal" onclick="event.stopPropagation()">
+      <div class="activity-header">
+        <h3>📋 Editar preguntas en lote</h3>
+        <button class="modal-btn cancel" style="flex:0;padding:8px 14px" onclick="closeBulkEditModal()">✕</button>
+      </div>
+      <div class="bulk-delete-filters">
+        <div class="bd-filter">
+          <label class="form-label">Módulo</label>
+          <select id="bdSection" class="form-input" onchange="updateBulkEditPreview()"></select>
+        </div>
+        <div class="bd-filter">
+          <label class="form-label">Prueba</label>
+          <select id="bdPrueba" class="form-input" onchange="updateBulkEditPreview()">
+            <option value="">Todas</option>
+            <option value="prueba1">Prueba 1</option>
+            <option value="prueba2">Prueba 2</option>
+            <option value="prueba3">Prueba 3</option>
+            <option value="__none__">Sin prueba asignada</option>
+          </select>
+        </div>
+        <div class="bd-filter">
+          <label class="form-label">Track</label>
+          <select id="bdTrack" class="form-input" onchange="updateBulkEditPreview()">
+            <option value="">Todos</option>
+            <option value="consultor">🧑‍💼 Consultor</option>
+            <option value="desarrollador">💻 Desarrollador</option>
+          </select>
+        </div>
+        <div class="bd-filter">
+          <label class="form-label">Importadas desde</label>
+          <input type="date" id="bdDateFrom" class="form-input" onchange="updateBulkEditPreview()">
+        </div>
+        <div class="bd-filter">
+          <label class="form-label">Hasta</label>
+          <input type="date" id="bdDateTo" class="form-input" onchange="updateBulkEditPreview()">
+        </div>
+      </div>
+      <div id="bulkEditList" class="activity-list"></div>
+      <div class="bulk-edit-action">
+        <div class="bd-filter">
+          <label class="form-label">¿Qué quieres hacer con las preguntas encontradas?</label>
+          <select id="bdAction" class="form-input" onchange="onBulkActionChange()">
+            <option value="delete">🗑️ Eliminar</option>
+            <option value="section">📦 Cambiar módulo</option>
+            <option value="prueba">📝 Cambiar prueba</option>
+            <option value="track">🏷️ Cambiar track</option>
+            <option value="status">✅ Cambiar estado</option>
+          </select>
+        </div>
+        <div class="bd-filter" id="bdActionExtraWrap" style="display:none">
+          <label class="form-label" id="bdActionExtraLabel">Nuevo valor</label>
+          <div id="bdActionExtra"></div>
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:14px">
+        <button class="modal-btn delete" id="bulkEditConfirmBtn" onclick="confirmBulkAction()" disabled>🗑️ Eliminar</button>
+        <button class="modal-btn cancel" onclick="closeBulkEditModal()">Cancelar</button>
       </div>
     </div>
   </div>
